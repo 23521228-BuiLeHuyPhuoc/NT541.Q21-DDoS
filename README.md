@@ -1,5 +1,5 @@
 # 📚 Hướng dẫn quy trình đẩy code lên github
-# Chú ý: Không đẩy lên branch main, chỉ được đẩy lên branch tên của các bạn. Bạn người làm sau phải bao gồm code của người làm trước !
+ Chú ý: Không đẩy lên branch main, chỉ được đẩy lên branch tên của các bạn. Bạn người làm sau phải bao gồm code của người làm trước !
 
 ---
 
