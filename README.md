@@ -120,4 +120,4 @@ Khi thực hiện lệnh `push`, GitHub sẽ yêu cầu:
 
 ---
 
-**Chúc Nhóm 5 hoàn thành tốt đồ án! 🚀**
+**Chúc Nhóm 4 hoàn thành tốt đồ án! 🚀**
