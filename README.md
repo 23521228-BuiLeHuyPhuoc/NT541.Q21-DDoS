@@ -56,8 +56,8 @@ ví dụ như đây là 3 file mình đã làm:
 sau khi đảm bảo xong thì các bạn mới chạy lệnh sau:
 
 ```bash
-# Xem các file đã thay đổi
-git status
+# Tiến tới thư mục github ở local
+cd NT541.Q21-DDoS
 
 # Đưa tất cả thay đổi vào hàng chờ
 git add .
@@ -66,6 +66,7 @@ git add .
 git commit -m "Mo ta ngan gon cong viec da lam"
 ```
 ## Ví dụ:
+## cd NT541.Q21-DDoS
 ## git add .
 ## git commit -m "Phước mới làm xong tính năng tạo topology"
 
