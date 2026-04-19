@@ -8,7 +8,7 @@ import math
 import time
 from datetime import datetime
 
-# Import thư viện InfluxDB
+# Import thu vien InfluxDB
 try:
     from influxdb import InfluxDBClient
     HAS_INFLUX = True
@@ -37,6 +37,10 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         self.ENTROPY_HIGH = 8.0       # > 8.0: Gia mao IP (Spoofed IP)
         self.ENTROPY_LOW = 1.5        # < 1.5: DoS IP co dinh
         
+        # Trang thai tan cong hien tai (cho Grafana)
+        # 0 = binh thuong, 1 = DoS Fixed IP, 2 = DoS Spoofed IP
+        self.attack_status = 0
+        
         # Whitelist: cac IP hop le khong tham gia vao tinh Entropy va khong bi block
         # Cac may thuoc Internal, DMZ, PC zone va ext1
         self.WHITELIST_SRC = {
@@ -61,11 +65,8 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             self.influx_client = None
             self.logger.warning("[GRAFANA] Chua cai thu vien influxdb (pip install influxdb)")
 
-        # Flow Stats
-        self.flow_stats = {}
-        
+        # Khoi chay thread giam sat Entropy
         hub.spawn(self._monitor_entropy)
-        hub.spawn(self._monitor_flows)
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def _state_change(self, ev):
@@ -98,6 +99,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                 
                 # KICH BAN 1: TAN CONG TU IP CO DINH (DoS - Fixed IP)
                 if entropy < self.ENTROPY_LOW:
+                    self.attack_status = 1
                     self.logger.warning("\n[!] PHAT HIEN DoS FIXED IP (LOW ENTROPY = %.2f)", entropy)
                     
                     for ip, count in ip_counts.items():
@@ -111,6 +113,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                     
                 # KICH BAN 2: TAN CONG GIA MAO IP (DoS - SPOOFED IP / RANDOM SOURCE)
                 elif entropy > self.ENTROPY_HIGH:
+                    self.attack_status = 2
                     self.logger.warning("\n[!] PHAT HIEN DoS SPOOFED IP (HIGH ENTROPY = %.2f)", entropy)
                     self.logger.warning(" => DROP ALL IPv4 (priority=40, 10s) + BAO VE ext1 (priority=60)!")
                     
@@ -139,24 +142,62 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                         self.logger.info(" => Da cai flow ALLOW cho toan bo Whitelist priority=60")
                     
                     self.src_ip_window.clear()
+                
+                # Binh thuong: khong phat hien tan cong
+                else:
+                    self.attack_status = 0
 
             # --- GUI DU LIEU LEN GRAFANA (INFLUXDB) ---
-            if self.influx_client:
-                try:
-                    json_body = [{
-                        "measurement": "network_traffic",
-                        "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
-                        "fields": {
-                            "packet_rate": current_rate,
-                            "entropy": float(entropy)
-                        }
-                    }]
-                    self.influx_client.write_points(json_body)
-                except Exception as e:
-                    self.logger.error("[GRAFANA] Loi gui data InfluxDB: %s", e)
+            self._send_to_grafana(current_rate, entropy)
+
+    def _send_to_grafana(self, current_rate, entropy):
+        """Gui tat ca metrics len InfluxDB de hien thi tren Grafana"""
+        if not self.influx_client:
+            return
+        
+        try:
+            now = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
+            
+            json_body = [
+                {
+                    "measurement": "entropy_monitor",
+                    "time": now,
+                    "fields": {
+                        "packet_rate": current_rate,
+                        "entropy": float(entropy),
+                        "attack_status": self.attack_status,
+                        "blocked_ip_count": len(self.blocked_ips),
+                        "window_fill": len(self.src_ip_window)
+                    }
+                }
+            ]
+            
+            self.influx_client.write_points(json_body)
+            self.logger.debug("[GRAFANA] Da gui: rate=%d, entropy=%.2f, attack=%d, blocked=%d",
+                            current_rate, entropy, self.attack_status, len(self.blocked_ips))
+        except Exception as e:
+            self.logger.error("[GRAFANA] Loi gui data InfluxDB: %s", e)
 
     def _block_ip(self, bad_ip):
         self.blocked_ips.add(bad_ip)
+        
+        # Gui event block len Grafana
+        if self.influx_client:
+            try:
+                json_body = [{
+                    "measurement": "blocked_events",
+                    "time": datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'),
+                    "tags": {
+                        "blocked_ip": bad_ip
+                    },
+                    "fields": {
+                        "event": 1
+                    }
+                }]
+                self.influx_client.write_points(json_body)
+            except Exception as e:
+                self.logger.error("[GRAFANA] Loi gui block event: %s", e)
+        
         for dp in self.dps.values():
             parser = dp.ofproto_parser
             match = parser.OFPMatch(eth_type=0x0800, ipv4_src=bad_ip)
@@ -170,41 +211,6 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                 self.blocked_ips.remove(bad_ip)
                 self.logger.info("[INFO] Da mo block cho IP: %s", bad_ip)
         hub.spawn(unblock)
-
-    # ==========================================
-    # QUET LUU LUONG (FLOW STATS) CHO DoS FIXED IP
-    # ==========================================
-    def _monitor_flows(self):
-        while True:
-            for dp in self.dps.values():
-                req = dp.ofproto_parser.OFPFlowStatsRequest(dp)
-                dp.send_msg(req)
-            hub.sleep(3)
-
-    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
-    def flow_stats_reply_handler(self, ev):
-        now = time.time()
-        for stat in ev.msg.body:
-            if stat.priority == 0: continue
-            
-            match_src = stat.match.get('ipv4_src')
-            if not match_src or match_src in self.gateways or match_src in self.WHITELIST_SRC:
-                continue
-
-            key = (ev.msg.datapath.id, match_src, stat.match.get('ipv4_dst'))
-            prev = self.flow_stats.get(key)
-            
-            if prev:
-                prev_pkt, prev_time = prev
-                delta = now - prev_time
-                if delta > 0:
-                    pps = (stat.packet_count - prev_pkt) / delta
-                    if pps > 500 and match_src not in self.blocked_ips:
-                        self.logger.warning("\n[!] PHAT HIEN DoS FIXED IP (PPS = %d) tu IP: %s", int(pps), match_src)
-                        self.logger.warning(" => Thu pham luu luong khong lo. DROP TRONG 60 GIAY!")
-                        self._block_ip(match_src)
-            
-            self.flow_stats[key] = (stat.packet_count, now)
 
     # ==========================================
     # 2. XU LY GOI TIN (PACKET IN) & THU THAP DATA
@@ -265,12 +271,6 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             self.add_flow(dp, 10, match, actions, idle_timeout=5)
             out = parser.OFPPacketOut(datapath=dp, buffer_id=msg.buffer_id, in_port=in_port, actions=actions, data=msg.data)
             dp.send_msg(out)
-
-    def add_flow(self, datapath, priority, match, actions, idle_timeout=0):
-        parser = datapath.ofproto_parser
-        inst = [parser.OFPInstructionActions(datapath.ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        mod = parser.OFPFlowMod(datapath=datapath, priority=priority, match=match, instructions=inst, idle_timeout=idle_timeout)
-        datapath.send_msg(mod)
 
     def _send_arp(self, dp, port, eth_dst, opcode, s_mac, s_ip, d_mac, d_ip):
         pkt = packet.Packet()
