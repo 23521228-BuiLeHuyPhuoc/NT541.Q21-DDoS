@@ -50,8 +50,10 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         if HAS_INFLUX:
             try:
                 self.influx_client = InfluxDBClient(host='localhost', port=8086)
+                # Tu dong tao database neu chua co
+                self.influx_client.create_database('sdn_monitor')
                 self.influx_client.switch_database('sdn_monitor')
-                self.logger.info("[GRAFANA] Da ket noi InfluxDB thanh cong!")
+                self.logger.info("[GRAFANA] Da ket noi InfluxDB va tao DB thanh cong!")
             except Exception as e:
                 self.logger.error("[GRAFANA] Loi ket noi InfluxDB: %s", e)
                 self.influx_client = None
@@ -147,7 +149,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                     }]
                     self.influx_client.write_points(json_body)
                 except Exception as e:
-                    pass
+                    self.logger.error("[GRAFANA] Loi gui data InfluxDB: %s", e)
 
     def _block_ip(self, bad_ip):
         self.blocked_ips.add(bad_ip)
