@@ -158,4 +158,21 @@ Thời gian:
 
 ---
 
+## 🛡️ Kịch bản tấn công DoS
+
+> **Lưu ý:** Đồ án này demo **DoS** (1 nguồn tấn công duy nhất), không phải DDoS (nhiều nguồn).
+
+| File | Loại tấn công | Lệnh tấn công |
+|------|--------------|---------------|
+| `botnet.txt` | DoS - Fixed Source IP | `hping3 -S -p 80 --flood 10.0.2.10` |
+| `spoof.txt` | DoS - Spoofed (Random) Source IP | `hping3 -S -p 80 --flood --rand-source 10.0.2.10` |
+
+**Cách chạy kịch bản DoS trong Mininet CLI:**
+```bash
+source botnet.txt   # Kịch bản 1: Low Entropy (IP cố định)
+source spoof.txt    # Kịch bản 2: High Entropy (IP ngẫu nhiên)
+```
+
+---
+
 **Chúc Nhóm 4 làm việc hiệu quả với topology! 🚀**

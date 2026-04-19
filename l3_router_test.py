@@ -22,8 +22,9 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         # --- CAU HINH MANG ---
         self.mac = '00:00:00:00:00:FE'
         self.arp_table = {}
-        self.routes = {'10.0.1.': 1, '10.0.2.': 2, '10.0.3.': 3, '10.0.4.': 4}
-        self.gateways = ['10.0.1.1', '10.0.2.1', '10.0.3.1', '10.0.4.1']
+        # Port tren s2: port1=s1 (10.0.1.x), port2=s3 (10.0.2.x)
+        self.routes = {'10.0.1.': 1, '10.0.2.': 2}
+        self.gateways = ['10.0.1.1', '10.0.2.1']
         self.dps = {}
         
         # --- BIEN THONG KE ENTROPY ---
@@ -34,7 +35,11 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         
         # Nguong Entropy
         self.ENTROPY_HIGH = 8.0       # > 8.0: Gia mao IP (Spoofed IP)
-        self.ENTROPY_LOW = 1.5        # < 1.5: Botnet (Fixed IP)
+        self.ENTROPY_LOW = 1.5        # < 1.5: DoS IP co dinh
+        
+        # Whitelist: cac IP hop le khong tham gia vao tinh Entropy va khong bi block
+        # h_web1=10.0.2.10 (target server), h_ext1=10.0.1.20 (legitimate client)
+        self.WHITELIST_SRC = {'10.0.2.10', '10.0.1.20'}
         
         # --- KET NOI INFLUXDB ---
         if HAS_INFLUX:
@@ -80,33 +85,47 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                     probability = count / total_packets
                     entropy -= probability * math.log2(probability)
                 
-                # KICH BAN 1: TAN CONG TU IP CO DINH (BOTNET)
+                # KICH BAN 1: TAN CONG TU IP CO DINH (DoS - Fixed IP)
                 if entropy < self.ENTROPY_LOW:
-                    self.logger.warning("\n[!] PHAT HIEN DDoS BOTNET (LOW ENTROPY = %.2f)", entropy)
-                    whitelist_ips = ['10.0.2.10', '10.0.3.10', '10.0.2.11'] 
+                    self.logger.warning("\n[!] PHAT HIEN DoS FIXED IP (LOW ENTROPY = %.2f)", entropy)
                     
                     for ip, count in ip_counts.items():
                         if (count / total_packets) > 0.20 and ip not in self.blocked_ips:
-                            if ip in whitelist_ips:
-                                self.logger.info(" => Bo qua IP %s vi day la Server (Whitelist)!", ip)
+                            if ip in self.WHITELIST_SRC:
+                                self.logger.info(" => Bo qua IP %s vi nam trong Whitelist (Server/Client hop le)!", ip)
                                 continue
                             self.logger.warning(" => Thu pham: %s (Giao %d goi tin). DROP TRONG 60 GIAY!", ip, count)
                             self._block_ip(ip)
                     self.src_ip_window.clear()
                     
-                # KICH BAN 2: TAN CONG GIA MAO IP (SPOOFED IP / RANDOM SOURCE)
+                # KICH BAN 2: TAN CONG GIA MAO IP (DoS - SPOOFED IP / RANDOM SOURCE)
                 elif entropy > self.ENTROPY_HIGH:
-                    self.logger.warning("\n[!] PHAT HIEN DDoS SPOOFED IP (HIGH ENTROPY = %.2f)", entropy)
-                    self.logger.warning(" => Kich hoat DROP ALL PACKET-IN trong 10 giay de bao ve he thong!")
+                    self.logger.warning("\n[!] PHAT HIEN DoS SPOOFED IP (HIGH ENTROPY = %.2f)", entropy)
+                    self.logger.warning(" => DROP ALL IPv4 (priority=40, 10s) + BAO VE ext1 (priority=60)!")
                     
                     for dp in self.dps.values():
                         parser = dp.ofproto_parser
-                        match = parser.OFPMatch(eth_type=0x0800)
-                        inst = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
-                        mod = parser.OFPFlowMod(
-                            datapath=dp, priority=50, match=match, instructions=inst, hard_timeout=10
+                        
+                        # Buoc 1: DROP tat ca IPv4 voi priority thap (40)
+                        match_all = parser.OFPMatch(eth_type=0x0800)
+                        inst_drop = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
+                        mod_drop = parser.OFPFlowMod(
+                            datapath=dp, priority=40, match=match_all,
+                            instructions=inst_drop, hard_timeout=10
                         )
-                        dp.send_msg(mod)
+                        dp.send_msg(mod_drop)
+                        
+                        # Buoc 2: ALLOW ext1 (10.0.1.20) voi priority cao hon (60)
+                        # Flow nay override DROP ALL, dam bao ext1 van di qua
+                        match_ext1 = parser.OFPMatch(eth_type=0x0800, ipv4_src='10.0.1.20')
+                        mod_allow = parser.OFPFlowMod(
+                            datapath=dp, priority=60, match=match_ext1,
+                            instructions=[],  # GOTO_TABLE mac dinh (forward binh thuong)
+                            hard_timeout=10
+                        )
+                        dp.send_msg(mod_allow)
+                        self.logger.info(" => Da cai flow ALLOW cho ext1 (10.0.1.20) priority=60")
+                    
                     self.src_ip_window.clear()
 
             # --- GUI DU LIEU LEN GRAFANA (INFLUXDB) ---
@@ -169,7 +188,8 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             # --- DEM GOI TIN CHO GRAFANA ---
             self.packet_rate += 1
 
-            if p_ip.src not in self.gateways and p_ip.src != '10.0.2.10': 
+            # Chi them vao entropy window neu KHONG phai gateway hoac IP hop le (whitelist)
+            if p_ip.src not in self.gateways and p_ip.src not in self.WHITELIST_SRC:
                 self.src_ip_window.append(p_ip.src)
                 if len(self.src_ip_window) > self.WINDOW_SIZE:
                     self.src_ip_window.pop(0)
