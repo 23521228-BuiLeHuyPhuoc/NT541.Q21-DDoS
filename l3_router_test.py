@@ -61,7 +61,11 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             self.influx_client = None
             self.logger.warning("[GRAFANA] Chua cai thu vien influxdb (pip install influxdb)")
 
+        # Flow Stats
+        self.flow_stats = {}
+        
         hub.spawn(self._monitor_entropy)
+        hub.spawn(self._monitor_flows)
 
     @set_ev_cls(ofp_event.EventOFPStateChange, [MAIN_DISPATCHER, DEAD_DISPATCHER])
     def _state_change(self, ev):
@@ -166,6 +170,41 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                 self.blocked_ips.remove(bad_ip)
                 self.logger.info("[INFO] Da mo block cho IP: %s", bad_ip)
         hub.spawn(unblock)
+
+    # ==========================================
+    # QUET LUU LUONG (FLOW STATS) CHO DoS FIXED IP
+    # ==========================================
+    def _monitor_flows(self):
+        while True:
+            for dp in self.dps.values():
+                req = dp.ofproto_parser.OFPFlowStatsRequest(dp)
+                dp.send_msg(req)
+            hub.sleep(3)
+
+    @set_ev_cls(ofp_event.EventOFPFlowStatsReply, MAIN_DISPATCHER)
+    def flow_stats_reply_handler(self, ev):
+        now = time.time()
+        for stat in ev.msg.body:
+            if stat.priority == 0: continue
+            
+            match_src = stat.match.get('ipv4_src')
+            if not match_src or match_src in self.gateways or match_src in self.WHITELIST_SRC:
+                continue
+
+            key = (ev.msg.datapath.id, match_src, stat.match.get('ipv4_dst'))
+            prev = self.flow_stats.get(key)
+            
+            if prev:
+                prev_pkt, prev_time = prev
+                delta = now - prev_time
+                if delta > 0:
+                    pps = (stat.packet_count - prev_pkt) / delta
+                    if pps > 500 and match_src not in self.blocked_ips:
+                        self.logger.warning("\n[!] PHAT HIEN DoS FIXED IP (PPS = %d) tu IP: %s", int(pps), match_src)
+                        self.logger.warning(" => Thu pham luu luong khong lo. DROP TRONG 60 GIAY!")
+                        self._block_ip(match_src)
+            
+            self.flow_stats[key] = (stat.packet_count, now)
 
     # ==========================================
     # 2. XU LY GOI TIN (PACKET IN) & THU THAP DATA
