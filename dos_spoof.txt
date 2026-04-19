@@ -1,0 +1,4 @@
+h_web1 pkill iperf
+h_web1 iperf -s -p 80 &
+h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &
+h_att1 hping3 -S -p 80 --flood --rand-source 10.0.2.10

@@ -62,18 +62,6 @@
             "y": "312.0"
         },
         {
-            "number": "2",
-            "opts": {
-                "defaultRoute": "10.0.1.1",
-                "hostname": "h_att2",
-                "ip": "10.0.1.11/24",
-                "nodeNum": 2,
-                "sched": "host"
-            },
-            "x": "107.0",
-            "y": "308.0"
-        },
-        {
             "number": "7",
             "opts": {
                 "defaultRoute": "10.0.3.1",
@@ -149,11 +137,6 @@
     "links": [
         {
             "dest": "h_att1",
-            "opts": {},
-            "src": "s1"
-        },
-        {
-            "dest": "h_att2",
             "opts": {},
             "src": "s1"
         },
