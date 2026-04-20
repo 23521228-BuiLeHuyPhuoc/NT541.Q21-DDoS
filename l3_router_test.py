@@ -107,30 +107,14 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                 elif entropy > self.ENTROPY_HIGH:
                     self.attack_status = 2
                     self.logger.warning("[CANH BAO] Phat hien tan cong DoS bang IP gia mao! Entropy = %.2f (nguong > %.2f)", entropy, self.ENTROPY_HIGH)
-                    for dp in self.dps.values():
-                        parser = dp.ofproto_parser
-                        # DROP all IPv4
-                        match_all = parser.OFPMatch(eth_type=0x0800)
-                        inst_drop = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
-                        dp.send_msg(parser.OFPFlowMod(
-                            datapath=dp, priority=40, match=match_all,
-                            instructions=inst_drop, hard_timeout=10))
-                        # ALLOW whitelist — gửi lên controller để routing bình thường
-                        for wl_ip in self.WHITELIST_SRC:
-                            match_wl = parser.OFPMatch(eth_type=0x0800, ipv4_src=wl_ip)
-                            inst_wl = [parser.OFPInstructionActions(
-                                dp.ofproto.OFPIT_APPLY_ACTIONS,
-                                [parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER,
-                                                        dp.ofproto.OFPCML_NO_BUFFER)]
-                            )]
-                            dp.send_msg(parser.OFPFlowMod(
-                                datapath=dp, priority=60, match=match_wl,
-                                instructions=inst_wl, hard_timeout=10))
+                    self._apply_lockdown()
                     self.src_ip_window.clear()
                 else:
                     self.attack_status = 0
             else:
-                pass
+                # Window chua du mau — gia han lockdown neu dang bi tan cong spoof
+                if self.attack_status == 2:
+                    self._apply_lockdown()
 
             # --- GUI INFLUXDB ---
             if self.influx_client:
@@ -148,6 +132,28 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                     }])
                 except Exception as e:
                     self.logger.error("[INFLUXDB] Khong the ghi du lieu vao InfluxDB: %s", e)
+
+    def _apply_lockdown(self):
+        """Cai dat rule lockdown len tat ca switch: DROP all IPv4 + ALLOW whitelist"""
+        for dp in self.dps.values():
+            parser = dp.ofproto_parser
+            # DROP all IPv4 — priority 40
+            match_all = parser.OFPMatch(eth_type=0x0800)
+            inst_drop = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
+            dp.send_msg(parser.OFPFlowMod(
+                datapath=dp, priority=40, match=match_all,
+                instructions=inst_drop, hard_timeout=10))
+            # ALLOW whitelist — priority 60, gui len controller de routing binh thuong
+            for wl_ip in self.WHITELIST_SRC:
+                match_wl = parser.OFPMatch(eth_type=0x0800, ipv4_src=wl_ip)
+                inst_wl = [parser.OFPInstructionActions(
+                    dp.ofproto.OFPIT_APPLY_ACTIONS,
+                    [parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER,
+                                            dp.ofproto.OFPCML_NO_BUFFER)]
+                )]
+                dp.send_msg(parser.OFPFlowMod(
+                    datapath=dp, priority=60, match=match_wl,
+                    instructions=inst_wl, hard_timeout=10))
 
     def _block_ip(self, bad_ip):
         self.blocked_ips.add(bad_ip)
