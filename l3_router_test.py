@@ -115,12 +115,17 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                         dp.send_msg(parser.OFPFlowMod(
                             datapath=dp, priority=40, match=match_all,
                             instructions=inst_drop, hard_timeout=10))
-                        # ALLOW whitelist
+                        # ALLOW whitelist — gửi lên controller để routing bình thường
                         for wl_ip in self.WHITELIST_SRC:
                             match_wl = parser.OFPMatch(eth_type=0x0800, ipv4_src=wl_ip)
+                            inst_wl = [parser.OFPInstructionActions(
+                                dp.ofproto.OFPIT_APPLY_ACTIONS,
+                                [parser.OFPActionOutput(dp.ofproto.OFPP_CONTROLLER,
+                                                        dp.ofproto.OFPCML_NO_BUFFER)]
+                            )]
                             dp.send_msg(parser.OFPFlowMod(
                                 datapath=dp, priority=60, match=match_wl,
-                                instructions=[], hard_timeout=10))
+                                instructions=inst_wl, hard_timeout=10))
                     self.src_ip_window.clear()
                 else:
                     self.attack_status = 0
