@@ -131,12 +131,12 @@ CẦN PHÁT TRIỂN (mục tiêu V3):
 
 **Phát triển**: l3_router.py (thêm module detection)
 
-| STT | Công việc | Tuần | Chi tiết | Deadline | Sản phẩm | Cơ sở lý thuyết |
-|-----|----------|------|----------|----------|----------|----------------|
-| 3.1 | Module Phát hiện Entropy | 2 | • Xây dựng trên l3_router.py stats <br> • Mỗi 1 giây tính: <br> - H_src = Shannon entropy src IPs <br> - H_dst = Shannon entropy dst ports <br> - H_ttl = TTL entropy <br> - H_pkt_size = packet size entropy <br><br> • So sánh ngưỡng baseline: <br> - SYN flood: H_src < 1 bit → cảnh báo <br> - IP spoof: H_src > 6 bits → cảnh báo <br><br> • Cảnh báo nếu bất thường 2+ giây liên tiếp | Hết tuần 2 | detection_entropy.py (150 dòng) | A1: Kaur entropy |
-| 3.2 | Module Phát hiện Thống kê | 2 | • Tính mỗi 1 giây: <br> - rate_current, rate_baseline, rate_std <br> - z_score = (rate_current - baseline) / std <br><br> • Quy tắc cảnh báo: <br> - Z > 3: Dị thường traffic cao <br> - Spike: rate > 5x baseline <br> - Tăng luồng: new_conns > 3x baseline <br> - Tỉ lệ cờ bất thường: \|SYN% - baseline\| > 20% <br> - RST% bất thường: \|RST% - baseline\| > 15% <br><br> • Cảnh báo nếu trigger 3+ giây | Hết tuần 2 | detection_stats.py (150 dòng) | B2, B3 |
-| 3.3 | Khớp Chữ ký Tấn công | 2-3 | • Triển khai quy tắc: <br><br> SYN Flood: <br> IF (entropy_src < 1.5 AND syn_pct > 50%) → SYN_FLOOD <br><br> UDP Flood: <br> IF (pps > 5x AND pkt_size_std < 10) → UDP_FLOOD <br><br> HTTP Flood: <br> IF (http_req_rate > 100/s AND entropy normal) → HTTP_FLOOD <br><br> DNS Amplification: <br> IF (dns_resp >> dns_req AND entropy_dst high) → DNS_AMPL <br><br> IP Spoofing: <br> IF (entropy_src > 6.5 AND pps high) → IP_SPOOF <br><br> Low-rate DoS: <br> IF (pps normal BUT entropy_src < 2) → LOW_RATE <br><br> • Có confidence score (HIGH/MEDIUM/LOW) | Tuần 3 | attack_signature_matching.py (200 dòng) | Tất cả |
-| 3.4 | Hệ thống Cảnh báo Real-time | 3 | • Lắng nghe pcap/stats từ TV2 <br> • Tạo cảnh báo (JSON): <br> {timestamp, attack_type, confidence, src_ip, dst_ip, dst_port, metrics, mitigation_action} <br> • Log: alerts.json <br> • Gửi đến TV4 | Tuần 3 | alert_system.py (100 dòng), alerts.json | - |
+| STT | Công việc                   | Tuần | Chi tiết                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Deadline   | Sản phẩm                                | Cơ sở lý thuyết  |
+| --- | --------------------------- | ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- | --------------------------------------- | ---------------- |
+| 3.1 | Module Phát hiện Entropy    | 2    | • Xây dựng trên l3_router.py stats <br> • Mỗi 1 giây tính: <br> - H_src = Shannon entropy src IPs <br> - H_dst = Shannon entropy dst ports <br> - H_ttl = TTL entropy <br> - H_pkt_size = packet size entropy <br><br> • So sánh ngưỡng baseline: <br> - SYN flood: H_src < 1 bit → cảnh báo <br> - IP spoof: H_src > 6 bits → cảnh báo <br><br> • Cảnh báo nếu bất thường 2+ giây liên tiếp                                                                                                                                                                      | Hết tuần 2 | detection_entropy.py (150 dòng)         | A1: Kaur entropy |
+| 3.2 | Module Phát hiện Thống kê   | 2    | • Tính mỗi 1 giây: <br> - rate_current, rate_baseline, rate_std <br> - z_score = (rate_current - baseline) / std <br><br> • Quy tắc cảnh báo: <br> - Z > 3: Dị thường traffic cao <br> - Spike: rate > 5x baseline <br> - Tăng luồng: new_conns > 3x baseline <br> - Tỉ lệ cờ bất thường: \|SYN% - baseline\| > 20% <br> - RST% bất thường: \|RST% - baseline\| > 15% <br><br> • Cảnh báo nếu trigger 3+ giây                                                                                                                                                     | Hết tuần 2 | detection_stats.py (150 dòng)           | B2, B3           |
+| 3.3 | Khớp Chữ ký Tấn công        | 2-3  | • Triển khai quy tắc: <br><br> SYN Flood: <br> IF (entropy_src < 1.5 AND syn_pct > 50%) → SYN_FLOOD <br><br> UDP Flood: <br> IF (pps > 5x AND pkt_size_std < 10) → UDP_FLOOD <br><br> HTTP Flood: <br> IF (http_req_rate > 100/s AND entropy normal) → HTTP_FLOOD <br><br> DNS Amplification: <br> IF (dns_resp >> dns_req AND entropy_dst high) → DNS_AMPL <br><br> IP Spoofing: <br> IF (entropy_src > 6.5 AND pps high) → IP_SPOOF <br><br> Low-rate DoS: <br> IF (pps normal BUT entropy_src < 2) → LOW_RATE <br><br> • Có confidence score (HIGH/MEDIUM/LOW) | Tuần 3     | attack_signature_matching.py (200 dòng) | Tất cả           |
+| 3.4 | Hệ thống Cảnh báo Real-time | 3    | • Lắng nghe pcap/stats từ TV2 <br> • Tạo cảnh báo (JSON): <br> {timestamp, attack_type, confidence, src_ip, dst_ip, dst_port, metrics, mitigation_action} <br> • Log: alerts.json <br> • Gửi đến TV4                                                                                                                                                                                                                                                                                                                                                              | Tuần 3     | alert_system.py (100 dòng), alerts.json | -                |
 
 ---
 
@@ -165,65 +165,67 @@ CẦN PHÁT TRIỂN (mục tiêu V3):
 | **5.5** | **Documentation & GitHub Cuối**      | 4    | • `README.md`: Quick start, cấu trúc<br>• `INSTALL.md`: Phụ thuộc, setup<br>• `QUICKSTART.md`: Chạy trong 5 phút<br>• `RESULTS.md`: Tóm tắt vs papers<br>• `TROUBLESHOOTING.md`: Issues + fixes<br><br>**GitHub cấu trúc:**<br>`<br>docs/  → markdown files + papers<br>code/  → Python scripts<br>data/  → pcap, CSV, stats<br>results/ → plots, benchmarks<br>`<br><br>• Code: docstrings với citations, type hints<br>• Tag: v1.0-final                                                                                                                                                                                                                                                                                | Tuần 4     | GitHub sạch, tất cả docs                            | -               |
 
 ---
+
 ## 📅 LỊCH TRÌNH CHI TIẾT: THỨ TỰ LÀM VIỆC & DEPENDENCIES
 
 ### TUẦN 1: Chuẩn bị & Đọc hiểu
 
-| STT | Công việc | Thành viên | Bắt đầu | Kết thúc | Ưu tiên | Phụ thuộc vào | Ghi chú |
-|-----|---|---|---|---|---|---|---|
-| 1.1 | Survey 20-25 papers | TV1 | T1 Ngày 1 | T1 Ngày 5 | **CRITICAL** | Không | Input cho tất cả |
-| 1.2 | Khung lý thuyết | TV1 | T1 Ngày 2 | T1 Ngày 5 | **CRITICAL** | 1.1 | Định nghĩa quy tắc |
-| 2.1 | Kiểm chứng Lab | TV2 | T1 Ngày 1 | T1 Ngày 3 | **CRITICAL** | Không | Cơ sở cho tất cả data |
-| 2.2 (start) | Thu thập Lưu lượng Baseline | TV2 | T1 Ngày 3 | T2 Ngày 2 | High | 2.1 | Parallel với TV3, TV4 |
-| 3.0 | Xem papers phát hiện | TV3 | T1 Ngày 1 | T1 Ngày 3 | High | 1.1 | Chuẩn bị ý tưởng |
-| 4.0 | Xem Ryu + OpenFlow | TV4 | T1 Ngày 1 | T1 Ngày 3 | High | Không | Học tập tổng quát |
-| 5.0 | Setup test framework | TV5 | T1 Ngày 1 | T1 Ngày 5 | Medium | Không | Sẵn cho integration |
+| STT         | Công việc                   | Thành viên | Bắt đầu   | Kết thúc  | Ưu tiên      | Phụ thuộc vào | Ghi chú               |
+| ----------- | --------------------------- | ---------- | --------- | --------- | ------------ | ------------- | --------------------- |
+| 1.1         | Survey 20-25 papers         | TV1        | T1 Ngày 1 | T1 Ngày 5 | **CRITICAL** | Không         | Input cho tất cả      |
+| 1.2         | Khung lý thuyết             | TV1        | T1 Ngày 2 | T1 Ngày 5 | **CRITICAL** | 1.1           | Định nghĩa quy tắc    |
+| 2.1         | Kiểm chứng Lab              | TV2        | T1 Ngày 1 | T1 Ngày 3 | **CRITICAL** | Không         | Cơ sở cho tất cả data |
+| 2.2 (start) | Thu thập Lưu lượng Baseline | TV2        | T1 Ngày 3 | T2 Ngày 2 | High         | 2.1           | Parallel với TV3, TV4 |
+| 3.0         | Xem papers phát hiện        | TV3        | T1 Ngày 1 | T1 Ngày 3 | High         | 1.1           | Chuẩn bị ý tưởng      |
+| 4.0         | Xem Ryu + OpenFlow          | TV4        | T1 Ngày 1 | T1 Ngày 3 | High         | Không         | Học tập tổng quát     |
+| 5.0         | Setup test framework        | TV5        | T1 Ngày 1 | T1 Ngày 5 | Medium       | Không         | Sẵn cho integration   |
 
 ### TUẦN 2: Phát triển SONG SONG (3 dòng độc lập)
 
-| STT | Công việc | Thành viên | Bắt đầu | Kết thúc | Ưu tiên | Phụ thuộc vào | Ghi chú |
-|-----|---|---|---|---|---|---|---|
-| **DÒA: DATA** | | | | | | | |
-| 2.2 (tiếp) | Thu thập Baseline (tiếp) | TV2 | T2 Ngày 1 | T2 Ngày 2 | High | 2.1 | Xong baseline |
-| 2.3 | Tạo 10 DoS attack | TV2 | T2 Ngày 2 | T2 Ngày 5 | **CRITICAL** | 1.2 | Input cho TV3, TV5 |
-| 2.4 (start) | Trích xuất Features | TV2 | T2 Ngày 4 | T3 Ngày 3 | High | 2.3 | Extract metrics |
-| **DÒB: DETECTION** | | | | | | | |
-| 3.1 | Module Entropy | TV3 | T2 Ngày 1 | T2 Ngày 4 | **CRITICAL** | 1.2 | Song song với DÒA |
-| 3.2 | Module Statistics | TV3 | T2 Ngày 2 | T2 Ngày 4 | **CRITICAL** | 1.2 | Song song với DÒA |
-| **DÒC: MITIGATION** | | | | | | | |
-| 4.1 | Ryu Blocking | TV4 | T2 Ngày 1 | T2 Ngày 4 | **CRITICAL** | 1.2 | Song parallel TV2, TV3 |
-| 4.2 | Rate Limit Token Bucket | TV4 | T2 Ngày 3 | T2 Ngày 5 | High | 4.1 | Extend Ryu |
-| **DÒD: RESEARCH** | | | | | | | |
-| 1.3 | Chữ ký tấn công | TV1 | T2 Ngày 1 | T2 Ngày 5 | High | 1.2 | Cho TV3 matching |
-| 1.4 | Evaluation Protocol | TV1 | T2 Ngày 3 | T2 Ngày 5 | Medium | 1.2 | Tiêu chí test |
-| **DÒE: SUPPORT** | | | | | | | |
-| 5.0 (tiếp) | Refine test framework | TV5 | T2 Ngày 1 | T2 Ngày 5 | Medium | 5.0 | Sẵn cho tuần 3 |
+| STT                 | Công việc                | Thành viên | Bắt đầu   | Kết thúc  | Ưu tiên      | Phụ thuộc vào | Ghi chú                |
+| ------------------- | ------------------------ | ---------- | --------- | --------- | ------------ | ------------- | ---------------------- |
+| **DÒA: DATA**       |                          |            |           |           |              |               |                        |
+| 2.2 (tiếp)          | Thu thập Baseline (tiếp) | TV2        | T2 Ngày 1 | T2 Ngày 2 | High         | 2.1           | Xong baseline          |
+| 2.3                 | Tạo 10 DoS attack        | TV2        | T2 Ngày 2 | T2 Ngày 5 | **CRITICAL** | 1.2           | Input cho TV3, TV5     |
+| 2.4 (start)         | Trích xuất Features      | TV2        | T2 Ngày 4 | T3 Ngày 3 | High         | 2.3           | Extract metrics        |
+| **DÒB: DETECTION**  |                          |            |           |           |              |               |                        |
+| 3.1                 | Module Entropy           | TV3        | T2 Ngày 1 | T2 Ngày 4 | **CRITICAL** | 1.2           | Song song với DÒA      |
+| 3.2                 | Module Statistics        | TV3        | T2 Ngày 2 | T2 Ngày 4 | **CRITICAL** | 1.2           | Song song với DÒA      |
+| **DÒC: MITIGATION** |                          |            |           |           |              |               |                        |
+| 4.1                 | Ryu Blocking             | TV4        | T2 Ngày 1 | T2 Ngày 4 | **CRITICAL** | 1.2           | Song parallel TV2, TV3 |
+| 4.2                 | Rate Limit Token Bucket  | TV4        | T2 Ngày 3 | T2 Ngày 5 | High         | 4.1           | Extend Ryu             |
+| **DÒD: RESEARCH**   |                          |            |           |           |              |               |                        |
+| 1.3                 | Chữ ký tấn công          | TV1        | T2 Ngày 1 | T2 Ngày 5 | High         | 1.2           | Cho TV3 matching       |
+| 1.4                 | Evaluation Protocol      | TV1        | T2 Ngày 3 | T2 Ngày 5 | Medium       | 1.2           | Tiêu chí test          |
+| **DÒE: SUPPORT**    |                          |            |           |           |              |               |                        |
+| 5.0 (tiếp)          | Refine test framework    | TV5        | T2 Ngày 1 | T2 Ngày 5 | Medium       | 5.0           | Sẵn cho tuần 3         |
 
 ### TUẦN 3: Integration & Testing
 
-| STT | Công việc | Thành viên | Bắt đầu | Kết thúc | Ưu tiên | Phụ thuộc vào | Ghi chú |
-|-----|---|---|---|---|---|---|---|
-| 2.4 (tiếp) | Trích xuất Features (tiếp) | TV2 | T3 Ngày 1 | T3 Ngày 2 | High | 2.3 | Xong 11 CSV |
-| 2.5 | Setup Real-time Capture | TV2 | T3 Ngày 2 | T3 Ngày 3 | Medium | 2.4 | Demo sẵn |
-| 3.3 | Signature Matching | TV3 | T3 Ngày 1 | T3 Ngày 3 | **CRITICAL** | 1.3, 3.1, 3.2 | Kết hợp entropy + stats |
-| 3.4 | Alert System | TV3 | T3 Ngày 2 | T3 Ngày 4 | **CRITICAL** | 3.3 | Input cho TV4 |
-| 4.3 | DQoS + Shaping | TV4 | T3 Ngày 1 | T3 Ngày 4 | High | 4.2, 1.3 | Extend mitigation |
-| 4.4 | Blacklist/Whitelist | TV4 | T3 Ngày 3 | T3 Ngày 4 | High | 3.4, 4.3 | Subscribe alerts |
-| 4.5 | Benchmarking | TV4 | T3 Ngày 4 | T3 Ngày 5 | Medium | 4.1-4.4 | Đo performance |
-| 5.1 | Integration Testing | TV5 | T3 Ngày 2 | T3 Ngày 5 | **CRITICAL** | 2.4, 3.4, 4.4 | End-to-end test |
-| 5.2 | Visualization | TV5 | T3 Ngày 3 | T3 Ngày 5 | High | 5.1 | 8 biểu đồ |
-| 1.5 | Code Review | TV1 | T3 Ngày 1 | T3 Ngày 5 | Medium | 3.3-3.4, 4.1-4.4 | Kiểm citations |
+| STT        | Công việc                  | Thành viên | Bắt đầu   | Kết thúc  | Ưu tiên      | Phụ thuộc vào    | Ghi chú                 |
+| ---------- | -------------------------- | ---------- | --------- | --------- | ------------ | ---------------- | ----------------------- |
+| 2.4 (tiếp) | Trích xuất Features (tiếp) | TV2        | T3 Ngày 1 | T3 Ngày 2 | High         | 2.3              | Xong 11 CSV             |
+| 2.5        | Setup Real-time Capture    | TV2        | T3 Ngày 2 | T3 Ngày 3 | Medium       | 2.4              | Demo sẵn                |
+| 3.3        | Signature Matching         | TV3        | T3 Ngày 1 | T3 Ngày 3 | **CRITICAL** | 1.3, 3.1, 3.2    | Kết hợp entropy + stats |
+| 3.4        | Alert System               | TV3        | T3 Ngày 2 | T3 Ngày 4 | **CRITICAL** | 3.3              | Input cho TV4           |
+| 4.3        | DQoS + Shaping             | TV4        | T3 Ngày 1 | T3 Ngày 4 | High         | 4.2, 1.3         | Extend mitigation       |
+| 4.4        | Blacklist/Whitelist        | TV4        | T3 Ngày 3 | T3 Ngày 4 | High         | 3.4, 4.3         | Subscribe alerts        |
+| 4.5        | Benchmarking               | TV4        | T3 Ngày 4 | T3 Ngày 5 | Medium       | 4.1-4.4          | Đo performance          |
+| 5.1        | Integration Testing        | TV5        | T3 Ngày 2 | T3 Ngày 5 | **CRITICAL** | 2.4, 3.4, 4.4    | End-to-end test         |
+| 5.2        | Visualization              | TV5        | T3 Ngày 3 | T3 Ngày 5 | High         | 5.1              | 8 biểu đồ               |
+| 1.5        | Code Review                | TV1        | T3 Ngày 1 | T3 Ngày 5 | Medium       | 3.3-3.4, 4.1-4.4 | Kiểm citations          |
 
 ### TUẦN 4: Demo & Finalization
 
-| STT | Công việc | Thành viên | Bắt đầu | Kết thúc | Ưu tiên | Phụ thuộc vào | Ghi chú |
-|-----|---|---|---|---|---|---|---|
-| 5.3 | Live Demo (Rehearse) | TV2,TV3,TV4,TV5 | T4 Ngày 1 | T4 Ngày 3 | **CRITICAL** | 4.5, 5.2 | Demo chạy |
-| 5.4 | Thuyết trình + Q&A | TV1,TV5 | T4 Ngày 1 | T4 Ngày 3 | **CRITICAL** | 5.2, 1.5 | Slides + script |
-| 5.5 | Docs + GitHub Final | TV5 + Tất cả | T4 Ngày 2 | T4 Ngày 4 | High | 5.1 | Push v1.0-final |
-| 1.5 (tiếp) | Báo cáo cuối | TV1 | T4 Ngày 1 | T4 Ngày 4 | Medium | 1.3-1.4, 5.1 | Tổng kết |
+| STT        | Công việc            | Thành viên      | Bắt đầu   | Kết thúc  | Ưu tiên      | Phụ thuộc vào | Ghi chú         |
+| ---------- | -------------------- | --------------- | --------- | --------- | ------------ | ------------- | --------------- |
+| 5.3        | Live Demo (Rehearse) | TV2,TV3,TV4,TV5 | T4 Ngày 1 | T4 Ngày 3 | **CRITICAL** | 4.5, 5.2      | Demo chạy       |
+| 5.4        | Thuyết trình + Q&A   | TV1,TV5         | T4 Ngày 1 | T4 Ngày 3 | **CRITICAL** | 5.2, 1.5      | Slides + script |
+| 5.5        | Docs + GitHub Final  | TV5 + Tất cả    | T4 Ngày 2 | T4 Ngày 4 | High         | 5.1           | Push v1.0-final |
+| 1.5 (tiếp) | Báo cáo cuối         | TV1             | T4 Ngày 1 | T4 Ngày 4 | Medium       | 1.3-1.4, 5.1  | Tổng kết        |
 
 ---
+
 ## 📊 MA TRẬN SONG SONG HÓA
 
 | Tuần  | TV1 (Lý thuyết)     | TV2 (Data)                          | TV3 (Phát hiện)                     | TV4 (Mitigation)                      | TV5 (Testing)                      |
