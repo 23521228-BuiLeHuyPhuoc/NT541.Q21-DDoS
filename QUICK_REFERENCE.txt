@@ -1,0 +1,227 @@
+========================================
+⚡ QUICK REFERENCE - CHEAT SHEET
+========================================
+
+📌 KIẾN TRÚC TOÀN HỆ THỐNG:
+────────────────────────────
+Ryu Controller (port 6653)
+    ├─ l3_router_test.py: Chứa logic routing & DDoS detection
+    ├─ Flow Stats Monitor (mỗi 5s): Theo dõi PPS, BPS
+    ├─ Entropy Monitor: Phát hiện spoofing attacks
+    └─ Packet Handler: Xử lý L3 routing
+         │
+         └─> 5 Switches (OVSKernelSwitch)
+              ├─ s1 (dpid=1): External/Attacker zone
+              ├─ s2 (dpid=2): Core Router ⭐ (tất cả traffic đi qua)
+              ├─ s3 (dpid=3): Server zone 1 (Web/DNS)
+              ├─ s4 (dpid=4): Server zone 2 (DB/App)
+              └─ s5 (dpid=5): PC zone
+                   │
+                   └─> 8 Hosts (10.0.1.x - 10.0.4.x)
+
+
+🎯 CÁC HÀM CHÍNH VÀ CHỨC NĂNG:
+────────────────────────────
+1. switch_features_handler()
+   → Khi switch kết nối
+   → Tạo table-miss rule (priority=0)
+   → Mọi packet không match → gửi tới controller
+
+2. _packet_in_handler()
+   → Khi nhận packet từ switch
+   → Nếu từ edge switch → xử lý L2
+   → Nếu từ core router (s2) → xử lý L3 (ARP/IPv4)
+
+3. handle_arp()
+   → Xử lý ARP request/reply
+   → Lưu arp_table: IP ↔ MAC
+   → Nếu request cho gateway → trả lời router_mac
+
+4. handle_ipv4()
+   → Xử lý IPv4 routing
+   → Tìm matching prefix trong routing_table
+   → Giảm TTL
+   → Forward tới cổng đích
+
+5. state_change_handler()
+   → Track switch online/offline
+   → Lưu/xóa trong self.datapaths
+
+6. flow_stats_reply_handler()
+   → Mỗi 5s: nhận thống kê flow
+   → Tính PPS, BPS
+   → Nếu PPS > 1000 → cảnh báo + block
+
+7. port_stats_reply_handler()
+   → Mỗi 5s: nhận thống kê port
+   → Tính RX_PPS, TX_PPS
+   → Phát hiện port congestion
+
+
+📊 BẢNG ROUTING & ARP:
+────────────────────────────
+routing_table = {
+    '10.0.1.': 1,  ← port nối s1
+    '10.0.2.': 2,  ← port nối s3
+    '10.0.3.': 3,  ← port nối s4
+    '10.0.4.': 4   ← port nối s5
+}
+
+gateway_ips = ['10.0.1.1', '10.0.2.1', '10.0.3.1', '10.0.4.1']
+
+arp_table = {
+    '10.0.x.y': 'aa:bb:cc:dd:ee:ff',  ← dynamic
+    ...
+}
+
+router_mac = '00:00:00:00:00:FE'
+core_switch_dpid = 2
+
+
+⚔️ PHÁT HIỆN DDoS:
+────────────────────────────
+1️⃣  PPS Threshold:
+   if PPS > 1000 packets/sec
+   → HIGH TRAFFIC DETECTED
+   → Block ngay
+
+2️⃣  Shannon Entropy (Spoofing):
+   entropy = -Σ(p_i * log2(p_i))
+   Entropy cao = source khác nhau (spoofing)
+   Entropy thấp = cùng source (botnet)
+   
+3️⃣  Port Stats Anomaly:
+   Nếu port RX/TX quá cao → suspicious
+
+
+🚫 BLOCK MECHANISM:
+────────────────────────────
+match = OFPMatch(
+    eth_type=0x0800,      ← IPv4
+    ipv4_src=attacker_ip  ← source attacker
+)
+actions = []              ← TRỐ ACTION = DROP
+mod = OFPFlowMod(
+    datapath,
+    priority=100,
+    match=match,
+    instructions=[...]
+)
+datapath.send_msg(mod)
+→ Switch s2 sẽ drop gói từ attacker
+
+
+🔧 CHẠY DEMO:
+────────────────────────────
+Terminal 1:
+$ ryu-manager --verbose l3_router_test.py
+→ Start controller ở port 6653
+
+Terminal 2:
+$ cd baitap/...
+$ sudo python topology_nhom4.py
+→ Mininet CLI
+
+Terminal 3 (trong Mininet CLI):
+mininet> h_att1 python dos_botnet.txt
+→ Tấn công UDP flood từ h_att1
+
+Xem kết quả:
+- Terminal 1: Sẽ hiện "HIGH TRAFFIC DETECTED"
+- Terminal 2: Các server vẫn hoạt động
+- h_att1 bị block
+
+
+📈 FLOW STATS OUTPUT:
+────────────────────────────
+[FLOW] DPID=2 match(eth_type=0x0800,ipv4_src=10.0.1.10)
+   PPS=1500.50, BPS=750000.00
+
+[PORT] SW=2 PORT=1
+   RX_PPS=2000.00, TX_PPS=1500.00
+
+⚠️ HIGH TRAFFIC DETECTED: 1500.50 PPS
+
+
+🎬 CÁC FILE TẤN CÔNG:
+────────────────────────────
+dos_botnet.txt:
+├─ Gửi từ CÙNG IP attacker
+├─ PPS rất cao (1000+)
+└─ Detect qua PPS threshold
+
+dos_spoof.txt:
+├─ Giả mạo source IP khác
+├─ Pattern distributed
+└─ Detect qua Shannon Entropy
+
+
+💡 ĐIỀU QUAN TRỌNG:
+────────────────────────────
+1. Core Router (s2) là BOTTLENECK
+   → Tất cả traffic đi qua s2
+   → Controller có thể control 100%
+
+2. Event-driven architecture
+   → Xử lý real-time
+   → Không busy-wait
+
+3. OpenFlow 1.3
+   → Hỗ trợ L3 operations
+   → Priority levels (0-65535)
+   → Table-miss + specific rules
+
+4. Thread monitoring
+   → _monitor() chạy song song
+   → Không block packet processing
+   → hub.sleep() instead of time.sleep()
+
+5. ARP table cần động
+   → Khác cứng như routing table
+   → Cập nhật khi nhận ARP packet
+
+6. Prefix matching
+   → '10.0.1.' match 10.0.1.0 - 10.0.1.255
+   → Cách kinh điển cho subnet matching
+
+
+🎯 TIPS TRẢ LỜI:
+────────────────────────────
+Q: "Hệ thống của bạn làm gì?"
+A: "Phát hiện và ngăn chặn DDoS bằng SDN"
+
+Q: "Code đó code như nào?"
+A: "Event-driven. Switch gửi packet → 
+   Controller xử lý → Decide forward/block"
+
+Q: "Hàm X làm gì?"
+A: "Hàm X xử lý [sự kiện].
+   Bước 1: ...
+   Bước 2: ..."
+
+Q: "Tại sao dùng SDN?"
+A: "Tập trung hóa, linh hoạt, visibility cao,
+   có thể tự động response"
+
+Q: "Bạn phát hiện DDoS thế nào?"
+A: "Theo dõi PPS mỗi 5 giây.
+   Nếu vượt 1000 PPS → block source IP"
+
+
+📝 GỒNG KHOÁNG:
+────────────────────────────
+1. Mininet: Tạo topology mạng ảo
+2. OVS: Open vSwitch - switch ảo
+3. Ryu: Controller framework Python
+4. OpenFlow 1.3: Giao thức điều khiển
+5. ARP: Address Resolution Protocol
+6. IPv4: Định tuyến layer 3
+7. PPS: Packets Per Second (metric)
+8. Entropy: Đo độ "random" của source IP
+9. Flow stats: Thống kê luồng dữ liệu
+10. Port stats: Thống kê cổng switch
+
+
+========================================
+✅ ĐỌC ANSWER_SCRIPT.MD CHO CHI TIẾT!
+========================================
