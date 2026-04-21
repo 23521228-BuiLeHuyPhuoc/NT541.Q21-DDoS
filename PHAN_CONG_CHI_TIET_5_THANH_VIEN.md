@@ -1791,6 +1791,113 @@ Presentation (2 điểm):
 
 ---
 
+# 📅 MASTER TO-DO LIST - WEEKLY TRACKING
+
+## THAM KHẢO CHI TIẾT
+
+Xem danh sách toàn bộ công việc theo tuần bên dưới (Master To-Do List):
+
+---
+
+# 📅 MASTER TO-DO LIST - DETAILED WEEKLY BREAKDOWN
+
+**Status:** Week 1 / Week 5  
+**Last updated:** 2026-04-21  
+**Cách sử dụng:** Tích [x] khi hoàn thành, cập nhật weekly
+
+---
+
+## 📅 WEEK 1: SETUP + RESEARCH + PLANNING
+
+### Thành viên 1 - Research Lead
+
+- [ ] Read all 15+ papers from REFERENCES_PAPERS.md (prioritize A1, A2, B1, B2, C1, C2)
+- [ ] Create RESEARCH_SURVEY.md (3000+ words, all 15 papers cited)
+- [ ] Create EVALUATION_PROTOCOL.md (500+ words, define metrics & thresholds)
+- [ ] Create ATTACK_SCENARIOS.md (describe 5 scenarios: SYN, UDP, spoof, distributed, stealthy)
+- [ ] Team kickoff meeting (all 5 members, 30 mins)
+- [ ] Share research findings with team
+
+**Deadline:** End of Week 1  
+**Status:** ☐ NOT STARTED
+
+---
+
+### Thành viên 2 - Data & Lab Engineer
+
+- [ ] Install Mininet, Ryu, Scapy, tshark on Ubuntu 18.04+
+- [ ] Review `topology_nhom4.py` (understand 5 switches, 8 hosts)
+- [ ] Review `l3_router_test.py` (understand entropy algorithm)
+- [ ] Create `setup_environment.sh` (automated installation)
+- [ ] Test topology: mininet > h_pc1 ping h_web1 ✓
+- [ ] Test Ryu controller connection ✓
+- [ ] Create data directories: data/raw, data/features, logs
+- [ ] Create `LAB_SETUP_GUIDE.md` (installation + troubleshooting)
+- [ ] **Deliverable:** Setup script + verified running Mininet topology
+
+**Deadline:** End of Week 1  
+**Status:** ☐ NOT STARTED
+
+---
+
+### Thành viên 3 - ML Engineer (prepare)
+
+- [ ] Read ML papers (B3, B4 from REFERENCES_PAPERS.md)
+- [ ] Understand: Random Forest, XGBoost, class imbalance handling
+- [ ] Install sklearn, xgboost, lightgbm
+- [ ] Study hyperparameter tuning techniques
+- [ ] Prepare environment: Jupyter notebook or Python IDE
+- [ ] **Deliverable:** Environment ready, no ML work yet (wait for data from Member 2)
+
+**Deadline:** End of Week 1  
+**Status:** ☐ NOT STARTED
+
+---
+
+### Thành viên 4 - DL Engineer (prepare)
+
+- [ ] Read DL papers (C1, C2, C3, C4 from REFERENCES_PAPERS.md)
+- [ ] Understand: CNN, LSTM, Autoencoder architectures
+- [ ] Install TensorFlow/PyTorch + Keras
+- [ ] Study sequence generation (sliding window approach)
+- [ ] Prepare GPU environment (if available)
+- [ ] **Deliverable:** DL environment ready, understand flow sequences
+
+**Deadline:** End of Week 1  
+**Status:** ☐ NOT STARTED
+
+---
+
+### Thành viên 5 - QA + Presentation (prepare)
+
+- [ ] Read dataset papers (D1, D2 from REFERENCES_PAPERS.md)
+- [ ] Understand: test strategy, pytest, matplotlib basics
+- [ ] Create folder structure: tests/, plots/, results/
+- [ ] Plan presentation: 20 slides structure
+- [ ] **Deliverable:** Testing environment ready, slide template prepared
+
+**Deadline:** End of Week 1  
+**Status:** ☐ NOT STARTED
+
+---
+
 **Document created:** 2026-04-21  
 **Status:** ACTIVE - Week 1 Kickoff  
 **Next meeting:** Team sync every Monday 10:00 AM
+
+---
+
+## 📝 GHI CHÚ THÊM
+
+> **Chi tiết đầy đủ tuần 2-5:** Để xem danh sách chi tiết từng tuần, hãy tham khảo file **WORK_BREAKDOWN_FULL.md** hoặc liên hệ **Thành viên 1 (Research Lead)** để cập nhật thêm.
+
+---
+
+**Tổng cộng:** 5 tuần, ~25 tasks chính, ~80+ sub-tasks chi tiết
+
+✅ **Ghi chú:** File này được consolidate từ:
+
+- PHAN_CONG_CHI_TIET_5_THANH_VIEN.md (version chính)
+- MASTER_TODO_LIST.md (weekly tracking)
+
+**Status:** READY FOR TEAM EXECUTION

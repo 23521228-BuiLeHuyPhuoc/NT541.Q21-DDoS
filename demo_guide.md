@@ -110,6 +110,7 @@ c0 = net.addController(name='c0',
 ```
 
 **Giải thích:**
+
 - `topo=None, build=False`: không dùng topology tự động, tự tay xây dựng
 - `ipBase='10.0.0.0/8'`: dải IP cơ sở cho toàn mạng
 - `RemoteController` trỏ tới `127.0.0.1:6653` — nơi Ryu đang lắng nghe
@@ -126,6 +127,7 @@ s5 = net.addSwitch('s5', cls=OVSKernelSwitch, dpid='5')  # Campus zone
 ```
 
 **Giải thích:**
+
 - `dpid` (Datapath ID): mã định danh duy nhất của mỗi switch trong OpenFlow
 - **s2 (dpid=2)** là trung tâm — toàn bộ code detection trong `l3_router_test.py` chỉ xử lý trên switch có `dp.id == 2`
 - s1, s3, s4, s5 là edge switch — chỉ làm L2 switching (học MAC, forward frame)
@@ -152,16 +154,16 @@ h_pc2 = net.addHost('h_pc2', ip='10.0.4.11/24', defaultRoute='via 10.0.4.1')
 
 **Bảng tổng hợp:**
 
-| Host | IP | Subnet | Zone | Vai trò | Whitelist? |
-|---|---|---|---|---|---|
-| `h_att1` | 10.0.1.10 | 10.0.1.0/24 | Internet | **Kẻ tấn công** | ❌ KHÔNG |
-| `h_ext1` | 10.0.1.20 | 10.0.1.0/24 | Internet | User ngoài hợp lệ | ✅ CÓ |
-| `h_web1` | 10.0.2.10 | 10.0.2.0/24 | DMZ | Web Server (mục tiêu) | ✅ CÓ |
-| `h_dns1` | 10.0.2.11 | 10.0.2.0/24 | DMZ | DNS Server | ✅ CÓ |
-| `h_db1` | 10.0.3.10 | 10.0.3.0/24 | Internal | Database Server | ✅ CÓ |
-| `h_app1` | 10.0.3.11 | 10.0.3.0/24 | Internal | App Server | ✅ CÓ |
-| `h_pc1` | 10.0.4.10 | 10.0.4.0/24 | Campus | PC nội bộ 1 | ✅ CÓ |
-| `h_pc2` | 10.0.4.11 | 10.0.4.0/24 | Campus | PC nội bộ 2 | ✅ CÓ |
+| Host     | IP        | Subnet      | Zone     | Vai trò               | Whitelist? |
+| -------- | --------- | ----------- | -------- | --------------------- | ---------- |
+| `h_att1` | 10.0.1.10 | 10.0.1.0/24 | Internet | **Kẻ tấn công**       | ❌ KHÔNG   |
+| `h_ext1` | 10.0.1.20 | 10.0.1.0/24 | Internet | User ngoài hợp lệ     | ✅ CÓ      |
+| `h_web1` | 10.0.2.10 | 10.0.2.0/24 | DMZ      | Web Server (mục tiêu) | ✅ CÓ      |
+| `h_dns1` | 10.0.2.11 | 10.0.2.0/24 | DMZ      | DNS Server            | ✅ CÓ      |
+| `h_db1`  | 10.0.3.10 | 10.0.3.0/24 | Internal | Database Server       | ✅ CÓ      |
+| `h_app1` | 10.0.3.11 | 10.0.3.0/24 | Internal | App Server            | ✅ CÓ      |
+| `h_pc1`  | 10.0.4.10 | 10.0.4.0/24 | Campus   | PC nội bộ 1           | ✅ CÓ      |
+| `h_pc2`  | 10.0.4.11 | 10.0.4.0/24 | Campus   | PC nội bộ 2           | ✅ CÓ      |
 
 > **Chú ý**: `h_att1` (10.0.1.10) là host DUY NHẤT **không có** trong whitelist → chỉ nó bị giám sát entropy.
 
@@ -200,14 +202,15 @@ net.addLink(s5, h_pc2)   # s5:port3 ↔ h_pc2
 
 **Mapping port trên s2** (rất quan trọng — phải khớp với `self.routes` trong code):
 
-| Port trên s2 | Kết nối tới | Subnet |
-|---|---|---|
-| Port 1 | s1 (Internet) | 10.0.1.0/24 |
-| Port 2 | s3 (DMZ) | 10.0.2.0/24 |
-| Port 3 | s4 (Internal) | 10.0.3.0/24 |
-| Port 4 | s5 (Campus) | 10.0.4.0/24 |
+| Port trên s2 | Kết nối tới   | Subnet      |
+| ------------ | ------------- | ----------- |
+| Port 1       | s1 (Internet) | 10.0.1.0/24 |
+| Port 2       | s3 (DMZ)      | 10.0.2.0/24 |
+| Port 3       | s4 (Internal) | 10.0.3.0/24 |
+| Port 4       | s5 (Campus)   | 10.0.4.0/24 |
 
 Đây chính là lý do bảng routing trong code là:
+
 ```python
 self.routes = {'10.0.1.': 1, '10.0.2.': 2, '10.0.3.': 3, '10.0.4.': 4}
 ```
@@ -234,6 +237,7 @@ net.stop() # Dọn dẹp khi thoát
 # 3. GIẢI THÍCH CHI TIẾT `l3_router_test.py`
 
 Đây là file **cốt lõi** — Ryu App kết hợp 3 chức năng:
+
 1. **L3 Router**: định tuyến giữa các subnet
 2. **Entropy-based DoS Detection**: phát hiện tấn công
 3. **Automatic Mitigation**: tự động ngăn chặn
@@ -254,6 +258,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
 ```
 
 **Giải thích từng import:**
+
 - `simple_switch_13`: class L2 switch mẫu của Ryu — app kế thừa từ đây để switch s1, s3, s4, s5 vẫn hoạt động L2 bình thường
 - `ofp_event`: các event OpenFlow (Packet-In, FlowStats, StateChange...)
 - `MAIN_DISPATCHER`: trạng thái switch đã handshake xong, sẵn sàng nhận lệnh
@@ -277,13 +282,13 @@ self.gateways = ['10.0.1.1', '10.0.2.1', '10.0.3.1', '10.0.4.1']
 self.dps = {}
 ```
 
-| Biến | Kiểu | Ý nghĩa |
-|---|---|---|
-| `self.mac` | string | MAC ảo của router — tất cả gói qua router đều dùng MAC này làm src |
-| `self.arp_table` | dict | Bảng ARP: `{IP → MAC}` — học từ ARP request/reply |
-| `self.routes` | dict | Bảng routing: `{subnet_prefix → port_number}` — tra cứu port output |
-| `self.gateways` | list | 4 gateway IP — router trả lời ARP cho các IP này |
-| `self.dps` | dict | `{dpid → datapath}` — lưu tham chiếu tới tất cả switch đang kết nối |
+| Biến             | Kiểu   | Ý nghĩa                                                             |
+| ---------------- | ------ | ------------------------------------------------------------------- |
+| `self.mac`       | string | MAC ảo của router — tất cả gói qua router đều dùng MAC này làm src  |
+| `self.arp_table` | dict   | Bảng ARP: `{IP → MAC}` — học từ ARP request/reply                   |
+| `self.routes`    | dict   | Bảng routing: `{subnet_prefix → port_number}` — tra cứu port output |
+| `self.gateways`  | list   | 4 gateway IP — router trả lời ARP cho các IP này                    |
+| `self.dps`       | dict   | `{dpid → datapath}` — lưu tham chiếu tới tất cả switch đang kết nối |
 
 **Router MAC ảo (`00:00:00:00:00:FE`)**: Trong mạng thật, router có MAC riêng trên mỗi interface. Ở đây đơn giản hóa: dùng 1 MAC duy nhất. Khi host gửi ARP hỏi gateway IP, controller trả lại MAC này → host gửi frame tới MAC này → switch gửi lên controller (Packet-In) → controller routing rồi đổi MAC đích thành MAC thật của host đích.
 
@@ -307,11 +312,13 @@ self.WHITELIST_SRC = {
 ```
 
 **Tại sao `src_ip_window` là `list` chứ không phải `deque`?**
+
 - `list` đơn giản, dễ hiểu
 - `pop(0)` trên list 1000 phần tử chỉ mất ~1μs — không đáng lo về performance
 - `Counter(list)` hoạt động tốt trên cả list lẫn deque
 
 **Tại sao có WHITELIST?**
+
 - Server nội bộ (web, dns, db, app) gửi response → nếu đưa vào window sẽ "pha loãng" dữ liệu tấn công → entropy bình thường hóa → không phát hiện được
 - `h_ext1` (10.0.1.20) là user hợp lệ — cũng exclude khỏi window
 - **Chỉ có `h_att1` (10.0.1.10)** là IP duy nhất KHÔNG trong whitelist → traffic của nó bị giám sát
@@ -333,6 +340,7 @@ if HAS_INFLUX:
 ```
 
 **Giải thích:**
+
 - Kiểm tra thư viện `influxdb` có cài không (try/except import)
 - Kết nối InfluxDB trên `localhost:8086`
 - Tạo database `sdn_monitor` nếu chưa có
@@ -350,6 +358,7 @@ hub.spawn(self._monitor_flows)     # Thread 2: query flow stats mỗi 3s
 ```
 
 **`hub.spawn`** tạo **green thread** (eventlet coroutine) — không phải OS thread:
+
 - Rất nhẹ, không cần lock
 - Dùng cooperative scheduling — chỉ chuyển context khi gặp `hub.sleep()` hoặc I/O
 - Tổng cộng có **2 background thread** chạy song song
@@ -367,11 +376,13 @@ def _state_change(self, ev):
 ```
 
 **Giải thích:**
+
 - `MAIN_DISPATCHER`: switch đã hoàn tất handshake OpenFlow, sẵn sàng nhận FlowMod
 - `DEAD_DISPATCHER`: switch mất kết nối
 - `self.dps` luôn chứa danh sách switch đang "sống" → dùng khi gửi FlowMod tới **tất cả** switch
 
 **Khi nào event này trigger?**
+
 - Khi chạy `topology_nhom4.py` → 5 switch kết nối → 5 lần `MAIN_DISPATCHER` → `self.dps = {1: dp1, 2: dp2, 3: dp3, 4: dp4, 5: dp5}`
 
 ## 3.4. PACKET-IN HANDLER — Logic chính (dòng 199–258)
@@ -509,6 +520,7 @@ def _send_arp(self, dp, port, eth_dst, opcode, s_mac, s_ip, d_mac, d_ip):
 ```
 
 **Giải thích:**
+
 - Tạo gói ARP từ controller và gửi ra switch qua PacketOut
 - `in_port=OFPP_CONTROLLER`: gói được tạo bởi controller (không phải từ port vật lý)
 - Dùng cho 2 trường hợp:
@@ -549,6 +561,7 @@ def _monitor_entropy(self):
 ```
 
 **Mỗi 3 giây**, thread thức dậy và:
+
 1. Lưu `packet_rate` (số Packet-In từ lần tính trước) rồi reset về 0
 2. Lấy `total_pps` (tổng PPS từ flow stats — tính riêng)
 3. Kiểm tra window đủ 100 mẫu chưa
@@ -568,11 +581,11 @@ if window_size >= 100:
 
 **Ví dụ tính toán thực tế:**
 
-| Tình huống | Window | IP counts | Entropy |
-|---|---|---|---|
-| Bình thường | 1000 gói từ 7 host | {A:150, B:140, C:145, D:135, E:130, F:155, G:145} | ≈ 2.80 |
-| Flood | 1000 gói, 950 từ h_att1 | {10.0.1.10: 950, others: 50} | ≈ 0.35 |
-| Spoofing | 1000 gói, 980 IP khác nhau | {rand1:1, rand2:1, ...} | ≈ 9.94 |
+| Tình huống  | Window                     | IP counts                                         | Entropy |
+| ----------- | -------------------------- | ------------------------------------------------- | ------- |
+| Bình thường | 1000 gói từ 7 host         | {A:150, B:140, C:145, D:135, E:130, F:155, G:145} | ≈ 2.80  |
+| Flood       | 1000 gói, 950 từ h_att1    | {10.0.1.10: 950, others: 50}                      | ≈ 0.35  |
+| Spoofing    | 1000 gói, 980 IP khác nhau | {rand1:1, rand2:1, ...}                           | ≈ 9.94  |
 
 ### 3.5.3. Phát hiện Flood (dòng 96–105)
 
@@ -590,6 +603,7 @@ if entropy < self.ENTROPY_LOW:          # H < 1.5
 ```
 
 **Logic:**
+
 1. Entropy dưới 1.5 → chắc chắn có flood
 2. Quét từng IP trong window, tìm IP nào chiếm > 20% (> 200 gói trên 1000)
 3. Nếu IP đó thuộc whitelist → bỏ qua (tránh block server)
@@ -640,6 +654,7 @@ Flow Table trong switch khi Lockdown:
 ```
 
 **Luồng xử lý khi Lockdown:**
+
 - Gói từ IP giả mạo → match rule priority 40 → **DROP**
 - Gói từ IP whitelist (ví dụ 10.0.2.10) → match rule priority 60 → **gửi lên controller** → controller routing bình thường
 - Sau 10 giây → cả 2 rule (40 và 60) hết hạn → mọi thứ trở về bình thường
@@ -693,12 +708,14 @@ def _block_ip(self, bad_ip):
 ```
 
 **Chi tiết mechanism:**
+
 1. **Thêm vào `blocked_ips`**: tránh gửi FlowMod trùng lặp nếu IP vẫn nằm trong window
 2. **FlowMod DROP** với `priority=100`: cao hơn mọi rule khác → mọi gói từ IP này bị drop tại switch, KHÔNG đi lên controller
 3. **`hard_timeout=60`**: switch tự xóa rule sau 60 giây (không cần controller can thiệp)
 4. **`unblock()` thread**: sau 61 giây (chắc chắn rule đã hết trên switch), xóa IP khỏi `blocked_ips` → nếu IP vẫn tấn công → entropy lại giảm → block lại
 
 **Tại sao `hard_timeout=60` chứ không phải `idle_timeout`?**
+
 - `hard_timeout`: xóa sau N giây **bất kể** có traffic hay không
 - `idle_timeout`: xóa sau N giây **không có** traffic
 - Kẻ tấn công vẫn gửi gói liên tục → `idle_timeout` sẽ không bao giờ hết → dùng `hard_timeout` để đảm bảo unblock
@@ -762,6 +779,7 @@ PPS = (2500 - 1000) / 3 = 500 gói/giây
 ```
 
 **Tại sao cần cả entropy VÀ flow stats?**
+
 - **Entropy**: phát hiện pattern tấn công (nhiều gói từ 1 IP, hoặc nhiều IP lạ)
 - **Flow stats PPS**: phát hiện tốc độ bất thường — ngay cả khi entropy chưa trigger (ví dụ: entropy ở mức 2.0 nhưng 1 IP gửi 600 PPS → vẫn bị block)
 - **Kết hợp 2 lớp** → giảm false negative
@@ -781,14 +799,15 @@ h_att1 hping3 -S -p 80 --flood 10.0.2.10    # ④ TẤN CÔNG!
 
 **Giải thích từng lệnh:**
 
-| # | Lệnh | Ý nghĩa |
-|---|---|---|
-| ① | `h_web1 pkill iperf` | Kill mọi process iperf cũ trên h_web1 (dọn dẹp) |
-| ② | `h_web1 iperf -s -p 80 &` | Chạy TCP server trên h_web1, lắng nghe port 80. `&` = chạy nền |
-| ③ | `h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &` | h_ext1 kết nối TCP tới h_web1:80, gửi data 300 giây. Đây là **traffic bình thường** để chứng minh user hợp lệ không bị ảnh hưởng |
-| ④ | `h_att1 hping3 -S -p 80 --flood 10.0.2.10` | **FLOOD ATTACK**: gửi SYN liên tục tới 10.0.2.10:80, tốc độ tối đa. `-S` = cờ SYN, `--flood` = không chờ reply, gửi liên tục |
+| #   | Lệnh                                       | Ý nghĩa                                                                                                                          |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| ①   | `h_web1 pkill iperf`                       | Kill mọi process iperf cũ trên h_web1 (dọn dẹp)                                                                                  |
+| ②   | `h_web1 iperf -s -p 80 &`                  | Chạy TCP server trên h_web1, lắng nghe port 80. `&` = chạy nền                                                                   |
+| ③   | `h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &` | h_ext1 kết nối TCP tới h_web1:80, gửi data 300 giây. Đây là **traffic bình thường** để chứng minh user hợp lệ không bị ảnh hưởng |
+| ④   | `h_att1 hping3 -S -p 80 --flood 10.0.2.10` | **FLOOD ATTACK**: gửi SYN liên tục tới 10.0.2.10:80, tốc độ tối đa. `-S` = cờ SYN, `--flood` = không chờ reply, gửi liên tục     |
 
 **Tham số hping3:**
+
 - `-S`: đặt cờ TCP SYN (giả lập bước 1 của 3-way handshake)
 - `-p 80`: port đích = 80
 - `--flood`: chế độ flood — gửi nhanh nhất có thể, không hiển thị output
@@ -807,14 +826,15 @@ h_att1 hping3 -S -p 80 --flood --rand-source 10.0.2.10
 
 **Khác biệt duy nhất**: `--rand-source`
 
-| Tham số | dos_botnet.txt | dos_spoof.txt |
-|---|---|---|
-| IP nguồn | 10.0.1.10 (cố định) | **Random mỗi gói** |
-| Entropy effect | Giảm mạnh (< 1.5) | Tăng vọt (> 8.0) |
-| Detection | `ENTROPY_LOW` | `ENTROPY_HIGH` |
-| Mitigation | Block IP cụ thể | LOCKDOWN toàn mạng |
+| Tham số        | dos_botnet.txt      | dos_spoof.txt      |
+| -------------- | ------------------- | ------------------ |
+| IP nguồn       | 10.0.1.10 (cố định) | **Random mỗi gói** |
+| Entropy effect | Giảm mạnh (< 1.5)   | Tăng vọt (> 8.0)   |
+| Detection      | `ENTROPY_LOW`       | `ENTROPY_HIGH`     |
+| Mitigation     | Block IP cụ thể     | LOCKDOWN toàn mạng |
 
 **`--rand-source`**: hping3 tạo IP nguồn ngẫu nhiên cho MỖI gói tin. Ví dụ:
+
 ```
 Gói 1: src=172.16.84.33  → 10.0.2.10
 Gói 2: src=10.255.7.201  → 10.0.2.10
@@ -976,16 +996,17 @@ Trong đó:
 
 ## 6.2. Tính chất toán học
 
-| Tính chất | Giải thích |
-|---|---|
-| `H ≥ 0` | Entropy luôn không âm |
-| `H = 0` | Chỉ khi tất cả gói từ 1 IP duy nhất (p=1, log₂(1)=0) |
-| `H = log₂(n)` | Khi mọi IP xuất hiện cùng tần suất (phân bố đều) |
-| `H_max = log₂(1000) ≈ 9.97` | Maximum khi 1000 gói có 1000 IP khác nhau |
+| Tính chất                   | Giải thích                                           |
+| --------------------------- | ---------------------------------------------------- |
+| `H ≥ 0`                     | Entropy luôn không âm                                |
+| `H = 0`                     | Chỉ khi tất cả gói từ 1 IP duy nhất (p=1, log₂(1)=0) |
+| `H = log₂(n)`               | Khi mọi IP xuất hiện cùng tần suất (phân bố đều)     |
+| `H_max = log₂(1000) ≈ 9.97` | Maximum khi 1000 gói có 1000 IP khác nhau            |
 
 ## 6.3. Ví dụ tính tay
 
 **Trường hợp Flood:**
+
 ```
 Window = [10.0.1.10, 10.0.1.10, 10.0.1.10, ..., 10.0.1.20, 10.0.1.20]
                      900 lần                         100 lần
@@ -1000,6 +1021,7 @@ H = 0.469 < 1.5 (ENTROPY_LOW) → PHÁT HIỆN FLOOD ✅
 ```
 
 **Trường hợp Spoofing:**
+
 ```
 Window = [ip_1, ip_2, ip_3, ..., ip_950, ip_repeat1, ip_repeat2, ...]
               950 IP duy nhất              50 IP lặp lại
@@ -1016,6 +1038,7 @@ H = 9.92 > 8.0 (ENTROPY_HIGH) → PHÁT HIỆN SPOOFING ✅
 ```
 
 **Trường hợp bình thường:**
+
 ```
 Window = [10.0.1.10, 10.0.1.10, ..., ext_ip1, ext_ip2, ...]
 Chỉ có vài IP thật (không whitelist), phân bố tự nhiên
@@ -1082,15 +1105,15 @@ Hoặc mix traffic: H ≈ 2-3 → bình thường
 
 ## 7.1. So sánh 2 kịch bản
 
-| Thuộc tính | Flood (H < 1.5) | Spoofing (H > 8.0) |
-|---|---|---|
-| **Phương pháp** | Block từng IP cụ thể | LOCKDOWN toàn mạng |
-| **Flow priority** | 100 (cao nhất) | 40 (DROP) + 60 (ALLOW) |
-| **Timeout** | `hard_timeout=60s` | `hard_timeout=10s` |
-| **Scope** | Chỉ IP tấn công | Tất cả IPv4 |
-| **Whitelist** | Skip khi quét | Cho phép qua lockdown |
-| **Unblock** | Thread riêng sau 61s | Tự hết sau 10s |
-| **Trigger** | 1 IP chiếm > 20% window | Quá nhiều IP duy nhất |
+| Thuộc tính        | Flood (H < 1.5)         | Spoofing (H > 8.0)     |
+| ----------------- | ----------------------- | ---------------------- |
+| **Phương pháp**   | Block từng IP cụ thể    | LOCKDOWN toàn mạng     |
+| **Flow priority** | 100 (cao nhất)          | 40 (DROP) + 60 (ALLOW) |
+| **Timeout**       | `hard_timeout=60s`      | `hard_timeout=10s`     |
+| **Scope**         | Chỉ IP tấn công         | Tất cả IPv4            |
+| **Whitelist**     | Skip khi quét           | Cho phép qua lockdown  |
+| **Unblock**       | Thread riêng sau 61s    | Tự hết sau 10s         |
+| **Trigger**       | 1 IP chiếm > 20% window | Quá nhiều IP duy nhất  |
 
 ## 7.2. Priority System giải thích
 
@@ -1157,9 +1180,11 @@ mininet> h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &
 ```
 
 **Quan sát trên Ryu console:**
+
 ```
 [ENTROPY] Gia tri entropy = 0.00 | Tong goi = 0 | So IP duy nhat = 0
 ```
+
 (Window chưa đủ 100 mẫu vì h_ext1 thuộc whitelist → không thêm vào window)
 
 ## 8.3. Bắt đầu tấn công
@@ -1260,9 +1285,9 @@ mininet> h_att1 hping3 -S -p 80 --flood --rand-source 10.0.2.10
 ```
 T=0s:  h_att1 flood với --rand-source
        Mỗi gói có src IP khác nhau: 172.x.x.x, 10.x.x.x, 192.x.x.x...
-       
+
        Controller nhận Packet-In từ s2:
-       → Mỗi IP ngẫu nhiên KHÔNG thuộc whitelist  
+       → Mỗi IP ngẫu nhiên KHÔNG thuộc whitelist
        → Thêm vào window: ['172.16.5.33', '10.44.88.2', '192.168.1.55', ...]
 
 T=0~3s: Window lấp đầy:
@@ -1425,6 +1450,7 @@ Tấn công tiếp tục → Window lại đầy
 ```
 
 Hệ thống **KHÔNG CẦN can thiệp thủ công**. Nó tự:
+
 1. Phát hiện → block/lockdown
 2. Timeout → kiểm tra lại
 3. Vẫn tấn công → block/lockdown lại
@@ -1434,13 +1460,13 @@ Hệ thống **KHÔNG CẦN can thiệp thủ công**. Nó tự:
 
 # 11. BẢNG TỔNG HỢP TẤT CẢ FLOW RULES
 
-| Priority | Match | Action | Timeout | Ai tạo | Khi nào |
-|---|---|---|---|---|---|
-| **0** | `(any)` | → Controller | Permanent | `SimpleSwitch13` | Khi switch kết nối |
-| **10** | `eth_type=0x0800, ipv4_src=WL, ipv4_dst=X` | Set MAC + Output | idle 30s | `_packet_in_handler` | Khi whitelist IP gửi gói |
-| **40** | `eth_type=0x0800` (all IPv4) | DROP | hard 10s | `_monitor_entropy` | Khi H > 8.0 (Spoofing) |
-| **60** | `eth_type=0x0800, ipv4_src=WL_IP` | → Controller | hard 10s | `_monitor_entropy` | Khi H > 8.0 (cùng lúc pri 40) |
-| **100** | `eth_type=0x0800, ipv4_src=BAD_IP` | DROP | hard 60s | `_block_ip()` | Khi H < 1.5 hoặc PPS > 500 |
+| Priority | Match                                      | Action           | Timeout   | Ai tạo               | Khi nào                       |
+| -------- | ------------------------------------------ | ---------------- | --------- | -------------------- | ----------------------------- |
+| **0**    | `(any)`                                    | → Controller     | Permanent | `SimpleSwitch13`     | Khi switch kết nối            |
+| **10**   | `eth_type=0x0800, ipv4_src=WL, ipv4_dst=X` | Set MAC + Output | idle 30s  | `_packet_in_handler` | Khi whitelist IP gửi gói      |
+| **40**   | `eth_type=0x0800` (all IPv4)               | DROP             | hard 10s  | `_monitor_entropy`   | Khi H > 8.0 (Spoofing)        |
+| **60**   | `eth_type=0x0800, ipv4_src=WL_IP`          | → Controller     | hard 10s  | `_monitor_entropy`   | Khi H > 8.0 (cùng lúc pri 40) |
+| **100**  | `eth_type=0x0800, ipv4_src=BAD_IP`         | DROP             | hard 60s  | `_block_ip()`        | Khi H < 1.5 hoặc PPS > 500    |
 
 ---
 
@@ -1525,6 +1551,7 @@ $ sudo ovs-ofctl dump-flows s2 -O OpenFlow13
 ```
 
 **Output mẫu khi đang block IP:**
+
 ```
 cookie=0x0, priority=100, hard_timeout=60, eth_type=0x0800,
   nw_src=10.0.1.10 actions=drop
@@ -1538,6 +1565,7 @@ cookie=0x0, priority=0 actions=CONTROLLER:65535
 ```
 
 **Output mẫu khi LOCKDOWN:**
+
 ```
 cookie=0x0, priority=60, hard_timeout=10, eth_type=0x0800,
   nw_src=10.0.2.10 actions=<none>    ← gửi lên controller (table-miss)
@@ -1560,6 +1588,55 @@ Measurement: network_traffic
 Fields: entropy, packet_rate, total_pps, attack_status, blocked_ip_count, window_fill
 ```
 
+## 12.6. Script Tấn Công - DOS_BOTNET.TXT
+
+**File:** `dos_botnet.txt` - Tấn công SYN Flood từ 1 IP
+
+```bash
+h_web1 pkill iperf
+h_web1 iperf -s -p 80 &
+h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &
+h_att1 hping3 -S -p 80 --flood 10.0.2.10
+```
+
+**Giải thích:**
+
+- `h_web1 pkill iperf`: Dừng các iperf cũ trên web server
+- `h_web1 iperf -s -p 80 &`: Khởi động iperf server ở port 80 (tạo normal traffic)
+- `h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &`: Client thường kết nối tới server (khác hành vi bình thường)
+- `h_att1 hping3 -S -p 80 --flood 10.0.2.10`: **Attacker gửi SYN packet liên tục tới server** (botnet attack)
+
+**Dấu hiệu DDoS:**
+
+- PPS từ h_att1 lên tới 1000+ packets/sec
+- Shannon Entropy thấp vì toàn từ 1 IP (h_att1 = 10.0.1.10)
+- Flow stats: PPS > 500 → trigger block
+- Kết quả: h_att1 bị block, h_web1 vẫn hoạt động bình thường
+
+## 12.7. Script Tấn Công - DOS_SPOOF.TXT
+
+**File:** `dos_spoof.txt` - Tấn công IP Spoofing (giả mạo nguồn)
+
+```bash
+h_web1 pkill iperf
+h_web1 iperf -s -p 80 &
+h_ext1 iperf -c 10.0.2.10 -p 80 -t 300 &
+h_att1 hping3 -S -p 80 --flood --rand-source 10.0.2.10
+```
+
+**Giải thích:**
+
+- Giống như trên, nhưng thêm flag `--rand-source`
+- **`--rand-source`**: Giả mạo source IP mỗi gói (random từ range 0-255)
+
+**Dấu hiệu DDoS:**
+
+- PPS cao tương tự (1000+)
+- **Nhưng Shannon Entropy TĂNG** vì source IP khác nhau nhiều
+- Entropy cao → chỉ báo spoofing attack → **lockdown toàn mạng** (all traffic blocked)
+- Recovery: h_att1 bị block + vào blacklist lâu dài
+- Kết quả: h_web1 và h_ext1 không thể kết nối cho tới khi lockdown timeout
+
 ---
 
 # 📝 TÓM TẮT CHO THUYẾT TRÌNH
@@ -1567,6 +1644,7 @@ Fields: entropy, packet_rate, total_pps, attack_status, blocked_ip_count, window
 > **Khi thầy hỏi "code hoạt động thế nào?":**
 >
 > Hệ thống có 3 luồng chạy song song:
+>
 > 1. **Packet-In Handler**: mỗi gói đi qua core router s2, controller nhận, routing (đổi MAC, forward), đồng thời ghi IP nguồn vào sliding window
 > 2. **Entropy Monitor (3s)**: tính Shannon Entropy trên window. H thấp → flood → block IP. H cao → spoofing → lockdown toàn mạng
 > 3. **Flow Stats Monitor (3s)**: query PPS từ switch. IP nào > 500 PPS → block ngay
