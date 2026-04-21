@@ -25,15 +25,18 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         self.gateways = ['10.0.1.1', '10.0.2.1', '10.0.3.1', '10.0.4.1']
         self.dps = {}
 
-        # --- ENTROPY ---
-        self.WINDOW_SIZE = 1000
-        self.src_ip_window = []
-        self.blocked_ips = set()
-        self.packet_rate = 0
-        self.ENTROPY_HIGH = 8.0
-        self.ENTROPY_LOW = 1.5
-        self.attack_status = 0
-
+      # --- CAU HINH ENTROPY VA THEO DOI TRAFFIC ---
+        self.WINDOW_SIZE = 1000            # SO LUONG GOI LUU TRONG WINDOW
+        self.src_ip_window = []            # DANH SACH IP NGUON GAN DAY
+        self.src_mac_window = []           # DANH SACH MAC TUONG UNG
+        self.blocked_ips = set()           # TAP IP DA BI CHAN
+        self.blocked_macs = set()          # TAP MAC DA BI CHAN
+        self.packet_rate = 0               # DEM SO GOI TRONG MOI CHU KY
+        self.ENTROPY_HIGH = 8.0            # NGUONG CAO (NGHI NGO SPOOF)
+        self.ENTROPY_LOW = 1.5             # NGUONG THAP (NGHI NGO 1 IP TAN CONG)
+        self.attack_status = 0             # 0: BINH THUONG, 1: TAN CONG IP, 2: SPOOF
+        
+        # DANH SACH IP HOP LE (KHONG BI CHAN)
         self.WHITELIST_SRC = {
             '10.0.2.10', '10.0.2.11',
             '10.0.3.10', '10.0.3.11',
@@ -70,9 +73,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
         elif dp.id in self.dps:
             del self.dps[dp.id]
 
-    # ==========================================
-    # ENTROPY & MITIGATION
-    # ==========================================
+# KIEM TRA ENTROPY DE PHAT HIEN TRAFFIC BAT THUONG 
     def _monitor_entropy(self):
         while True:
             hub.sleep(3)
@@ -103,31 +104,25 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                             self.logger.warning("[BLOCK] Chan IP %s — da gui %d goi (chiem %.1f%% tong traffic)", ip, count, (count/total)*100)
                             self._block_ip(ip)
                     self.src_ip_window.clear()
+                    self.src_mac_window.clear()
 
                 elif entropy > self.ENTROPY_HIGH:
                     self.attack_status = 2
                     self.logger.warning("[CANH BAO] Phat hien tan cong DoS bang IP gia mao! Entropy = %.2f (nguong > %.2f)", entropy, self.ENTROPY_HIGH)
-                    for dp in self.dps.values():
-                        parser = dp.ofproto_parser
-                        # DROP all IPv4
-                        match_all = parser.OFPMatch(eth_type=0x0800)
-                        inst_drop = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
-                        dp.send_msg(parser.OFPFlowMod(
-                            datapath=dp, priority=40, match=match_all,
-                            instructions=inst_drop, hard_timeout=10))
-                        # ALLOW whitelist
-                        for wl_ip in self.WHITELIST_SRC:
-                            match_wl = parser.OFPMatch(eth_type=0x0800, ipv4_src=wl_ip)
-                            dp.send_msg(parser.OFPFlowMod(
-                                datapath=dp, priority=60, match=match_wl,
-                                instructions=[], hard_timeout=10))
+                    # Tim MAC gui nhieu nhat — chinh la MAC thuc cua ke tan cong
+                    mac_counts = Counter(self.src_mac_window)
+                    for mac, count in mac_counts.most_common():
+                        if mac not in self.blocked_macs:
+                            self.logger.warning("[BLOCK] Chan MAC %s — da gui %d goi spoof (chiem %.1f%% tong traffic)", mac, count, (count/total)*100)
+                            self._block_mac(mac)
                     self.src_ip_window.clear()
+                    self.src_mac_window.clear()
                 else:
                     self.attack_status = 0
             else:
                 pass
 
-            # --- GUI INFLUXDB ---
+           # --- GUI DU LIEU LEN INFLUXDB ---
             if self.influx_client:
                 try:
                     self.influx_client.write_points([{
@@ -138,6 +133,7 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
                             "entropy": round(float(entropy), 4),
                             "attack_status": int(self.attack_status),
                             "blocked_ip_count": int(len(self.blocked_ips)),
+                            "blocked_mac_count": int(len(self.blocked_macs)),
                             "window_fill": int(window_size)
                         }
                     }])
@@ -160,9 +156,23 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             self.logger.info("[UNBLOCK] Da go chan IP %s sau 60 giay", bad_ip)
         hub.spawn(unblock)
 
-    # ==========================================
-    # FLOW STATS
-    # ==========================================
+    def _block_mac(self, bad_mac):
+        self.blocked_macs.add(bad_mac)
+        for dp in self.dps.values():
+            parser = dp.ofproto_parser
+            match = parser.OFPMatch(eth_src=bad_mac)
+            inst = [parser.OFPInstructionActions(dp.ofproto.OFPIT_APPLY_ACTIONS, [])]
+            dp.send_msg(parser.OFPFlowMod(
+                datapath=dp, priority=100, match=match,
+                instructions=inst, hard_timeout=60))
+
+        def unblock():
+            hub.sleep(61)
+            self.blocked_macs.discard(bad_mac)
+            self.logger.info("[UNBLOCK] Da go chan MAC %s sau 60 giay", bad_mac)
+        hub.spawn(unblock)
+
+   #  THEO DOI FLOW DE TINH TOC DO GOI
     def _monitor_flows(self):
         while True:
             for dp in self.dps.values():
@@ -193,9 +203,8 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
             self.flow_stats[key] = (stat.packet_count, now)
         self.total_pps = int(sum_pps)
 
-    # ==========================================
-    # PACKET IN
-    # ==========================================
+     # XU LY PACKET IN TU SWITCH
+    
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
@@ -225,8 +234,10 @@ class SimpleRouterEntropy(simple_switch_13.SimpleSwitch13):
 
             if p_ip.src not in self.gateways and p_ip.src not in self.WHITELIST_SRC:
                 self.src_ip_window.append(p_ip.src)
+                self.src_mac_window.append(p_eth.src)
                 if len(self.src_ip_window) > self.WINDOW_SIZE:
                     self.src_ip_window.pop(0)
+                    self.src_mac_window.pop(0)
 
             out_port = None
             for net, port in self.routes.items():
