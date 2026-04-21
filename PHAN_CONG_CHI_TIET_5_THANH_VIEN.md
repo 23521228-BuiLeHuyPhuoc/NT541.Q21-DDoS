@@ -1,22 +1,68 @@
-# PHAN CONG CHI TIET - 5 THANH VIEN
+# PHÂN CÔNG CHI TIẾT - 5 THÀNH VIÊN
 
 **Dựa trên:** WORK_BREAKDOWN_FULL.md + REFERENCES_PAPERS.md  
 **Mục tiêu:** Rõ ràng từng người làm gì, deadline, deliverable  
-**Format:** Từng thành viên có section riêng với checklist chi tiết
+**Format:** Bảng chi tiết công việc theo tuần
 
 ---
 
-## 👤 THÀNH VIÊN 1: LEADER + RESEARCH SCIENTIST (Trần Minh Khoa / [TÊN])
+## 📋 BẢNG PHÂN CÔNG TOÀN DỰ ÁN
 
-**Vai trò:** Trưởng nhóm, định hướng khoa học, đảm bảo chất lượng  
-**Kinh nghiệm mong muốn:** Giỏi tổng hợp, thành thạo writing, hiểu DL/ML  
-**Nỗ lực:** 30% thực hành + 70% quản lý/research
+| STT | Thành viên | Tuần | Task | Chi tiết công việc | Deadline | Sản phẩm |
+|-----|-----------|------|------|-------------------|----------|---------|
+| **1.1** | **Thành viên 1: Trần Minh Khoa** (Trưởng nhóm, Nghiên cứu) | 1-2 | **Survey & Tổng hợp Bài Báo** | • Đọc 15+ papers (A1-A3: entropy; B1-B4: ML; C1-C4: DL; D1-D2: dataset; E1-E3: survey)<br>• Tổng hợp: phương pháp, độ chính xác, latency, ưu nhược điểm<br>• Tạo bảng so sánh entropy vs ML vs DL<br>• Liệt kê 20+ features từ các paper<br>• Ghi chú: lỗ hổng lý thuyết, khoảng trống trong phương pháp hiện tại | Hết tuần 2 | `RESEARCH_SURVEY.md` (3000+ từ, 15+ papers cited, IEEE format) |
+| **1.2** | **Thành viên 1** | 1-2 | **Định nghĩa Protocol Đánh giá** | • Định nghĩa metrics: Accuracy, Precision, Recall, F1, ROC-AUC, Specificity<br>• Performance metrics: Latency (ms), Throughput (flows/sec), Memory (MB), CPU (%)<br>• Attack-specific: TPR/FNR per attack type<br>• Dataset split: 70% train (time-ordered), 20% val, 10% test<br>• Thresholds: Entropy_low<1.5, Entropy_high>8.0<br>• Acceptance criteria: F1≥0.85, Latency≤100ms, Throughput≥1000 flows/sec | Hết tuần 2 | `EVALUATION_PROTOCOL.md` (500+ từ, công thức, ví dụ tính toán) |
+| **1.3** | **Thành viên 1** | 3-5 | **Code Review & QA Oversight** | **Tuần 3:** Review data collection scripts, feature_extraction.py, kiểm tra data quality<br>**Tuần 4:** Review ML code (split/hyperparams/results), DL code (architecture/convergence), test suite<br>**Tuần 5:** Final reproducibility check, documentation, deliverables đầy đủ | Tuần 5 | `CODE_REVIEW_CHECKLISTS.md` (per week), Approval sign-off |
+| **1.4** | **Thành viên 1** | 4-5 | **Viết báo cáo cuối cùng** | • Introduction (2 trang): problem DDoS, khó detect, contributions<br>• Related Work (3 trang): A-series entropy, B-series ML, C-series DL, gap analysis<br>• Methodology (4 trang): kiến trúc, dataset, features, 3 methods<br>• Results (5 trang): bảng metrics, plots (ROC, PR, confusion matrix), error analysis<br>• Discussion (4 trang): so sánh, limitations, future work<br>• Conclusion (1 trang): tóm tắt, khuyến nghị<br>• Appendix (4+ trang): features list, hyperparams, architectures | Tuần 5 | `FINAL_REPORT.md` (30+ trang PDF, IEEE format toàn bộ) |
+| **2.1** | **Thành viên 2: Hoàng Minh Đức** (Data & Lab) | 1 | **Cài đặt Lab Environment** | • Ubuntu 18.04+: Mininet, Ryu, Scapy, tshark, tcpdump<br>• Review topology (5 switches, 8 hosts, IP config)<br>• Verify connectivity: ping test h_pc1→h_web1, h_att1→h_web1<br>• Setup Ryu controller: port 6653, verify "connected" logs<br>• Test capture: tcpdump trên s2, verify pcap packets<br>• Tạo dir: data/raw, data/features, logs | Hết tuần 1 | `setup_environment.sh` (tự động), `LAB_SETUP_GUIDE.md`, Mininet+Ryu chạy OK |
+| **2.2** | **Thành viên 2** | 2 | **Thu thập lưu lượng bình thường** | **Scenario A (Baseline):** h_web1 iperf -s -p 80, h_pc1 iperf -c 10.0.2.10 -t 300 → 5 mins → ~150MB pcap<br>**Scenario B (Mixed services):** DNS (dig @10.0.2.11), HTTP (curl), FTP, NTP → 10 mins → ~200MB<br>**Scenario C (Light):** h_pc2 ping 10.0.2.10 -i 1 → 5 mins → ~5MB<br>• Tạo logs: start time, stop time, packet count, pps rate | Hết tuần 2 | `data/raw/normal_*.pcap` (3 files, ≥500MB), `logs/normal_*.log` (metadata) |
+| **2.3** | **Thành viên 2** | 2-3 | **Thu thập lưu lượng tấn công DoS** | **Attack A (SYN Flood):** h_att1 hping3 -S -p 80 --flood 10.0.2.10 → 2 mins → ~150MB, PPS=20k+<br>**Attack B (UDP Flood):** h_att1 UDP flood script → 2 mins → ~150MB<br>**Attack C (IP Spoofing):** h_att1 random source IP → 2 mins → ~150MB, high entropy<br>**Attack D (Distributed):** h_att1+h_ext1 cùng flood → 2 mins → ~100MB<br>**Attack E (Stealthy):** 1 conn/sec, 5 mins → ~30MB, hard to detect<br>• Gắn nhãn: FLOOD, SPOOF, classification | Hết tuần 3 | `data/raw/dos_*.pcap` (5 files, ≥500MB), `logs/dos_*.log` (attack type, PPS) |
+| **2.4** | **Thành viên 2** | 3-4 | **Feature Extraction Pipeline** | • Parse pcap: Scapy/pyshark<br>• Extract per flow: src/dst IP/port, protocol, duration, fwd/bwd packets, bytes, rates, flags, entropy, size distribution<br>• **20+ features:** flow_duration, total_fwd_packets, total_bwd_packets, fwd_pkt_rate, entropy_src_ip, entropy_dst_port, min/max/mean pkt size, etc.<br>• Handle edge cases: empty pcap, corrupted packets, single-packet flows<br>• Output CSV: normal_all.csv, dos_all.csv → merge → flows_labeled_ALL.csv (2.5M+ flows, 20+ cols)<br>• Validation: <1% nulls, ranges OK, class distribution | Hết tuần 4 | `feature_extraction.py` (300+ lines), `flows_labeled_ALL.csv` (2.5M rows), `VALIDATION_REPORT.txt`, `DATASET_DESCRIPTION.md` |
+| **2.5** | **Thành viên 2** | 4 | **Tiền xử lý dữ liệu** | • Handle nulls: drop/impute mean (<1%)<br>• Outlier detection: IQR method, flag but keep<br>• StandardScaler: fit on train only, apply to val/test<br>• Time-ordered split: 70% train (Day 1-3), 20% val (Day 4), 10% test (Day 5)<br>• Save: train.csv, val.csv, test.csv, scaler.pkl<br>• Create report: null %, outliers %, balance, scaling info | Hết tuần 4 | `preprocessing.py` (150+ lines), train/val/test.csv, scaler.pkl, `PREPROCESSING_REPORT.txt` |
+| **3.1** | **Thành viên 3: Nguyễn Văn Tuấn** (ML) | 3-4 | **Random Forest Training** | • Load train/val/test CSVs<br>• Grid search: n_estimators [50,100,200], max_depth [10-20], min_samples_split [5,10], class_weight='balanced'<br>• 5-fold CV, F1 score metric<br>• Train best model, evaluate: Accuracy, Precision, Recall, F1, ROC-AUC<br>• Feature importance: top 10 plot<br>• Save model: models/rf_model.pkl, results: rf_results.json | Hết tuần 4 | `ml_rf_train.py` (200+ lines), rf_model.pkl, rf_results.json, feature_importance.png |
+| **3.2** | **Thành viên 3** | 4 | **XGBoost & LightGBM Training** | • XGBoost: max_depth [5-8], learning_rate [0.01-0.1], n_estimators [100-500], scale_pos_weight<br>• LightGBM: num_leaves [31-64], similar hyperparams<br>• Comparison table: RF vs XGB vs LGB (Acc, Prec, Recall, F1, AUC, latency)<br>• Plot: ROC curves overlay, confusion matrices (3 subplots) | Hết tuần 4 | `ml_xgboost_train.py`, `ml_lightgbm_train.py`, xgb/lgb models, `ml_comparison.csv`, plots |
+| **3.3** | **Thành viên 3** | 4-5 | **Real-time ML Inference** | • Load best model (XGBoost)<br>• Batch predictions: measure latency <50ms/batch<br>• Measure throughput: >1000 flows/sec<br>• Benchmark different traffic rates: 1k, 10k, 100k pps<br>• Create latency vs throughput plot | Hết tuần 5 | `ml_realtime_inference.py`, `ml_benchmark.py`, `ml_realtime_benchmark.json`, latency_throughput.png |
+| **3.4** | **Thành viên 3** | 5 | **Error Analysis & ML Results** | • False positives: identify confusion examples, analyze feature patterns<br>• False negatives: similar analysis<br>• Generate visualizations: scatter plots FP/FN in feature space<br>• Write ML_RESULTS.md: comparison table, feature importance, error patterns, recommendations | Hết tuần 5 | `ml_error_analysis.py`, `ML_RESULTS.md` (2000+ từ), fp_analysis.png, fn_analysis.png |
+| **4.1** | **Thành viên 4: Phạm Hoàng Nam** (DL) | 3-4 | **Chuẩn bị dữ liệu cho DL** | • Convert flow-level → sequences (sliding window size=20)<br>• Stride=1 (overlap by 19)<br>• Target: next flow's label (NORMAL/ATTACK)<br>• Output shape: (N, 20, 23) - N sequences, 20 flows, 23 features<br>• Create X_train_seq, y_train_seq, X_val_seq, y_val_seq, X_test_seq, y_test_seq | Hết tuần 4 | `dl_sequence_preparation.py`, X_train_seq.npy, y_train_seq.npy, etc. |
+| **4.2** | **Thành viên 4** | 4 | **Huấn luyện CNN 1D** | • Architecture: Conv1D(32, 3) → MaxPool → Conv1D(64, 3) → MaxPool → Flatten → Dense(128) → Dropout(0.3) → Dense(1, sigmoid)<br>• Optimizer: Adam(lr=0.001)<br>• Loss: binary_crossentropy<br>• Train: 50 epochs, batch_size=32, EarlyStopping patience=5<br>• Expected: F1≈0.98, latency≈120ms<br>• Plot training history (loss & accuracy) | Hết tuần 4 | `dl_cnn_train.py` (200+ lines), cnn_model.h5, cnn_training_history.png, metrics JSON |
+| **4.3** | **Thành viên 4** | 4 | **Huấn luyện LSTM** | • Architecture: LSTM(64, return_seq=True) → LSTM(32) → Dense(64) → Dropout(0.3) → Dense(1, sigmoid)<br>• Similar training setup<br>• Expected: F1≈0.975, latency≈200ms<br>• Slower than CNN but captures temporal patterns | Hết tuần 4 | `dl_lstm_train.py` (200+ lines), lstm_model.h5, lstm_training_history.png |
+| **4.4** | **Thành viên 4** | 4 | **Autoencoder (Unsupervised)** | • Train on NORMAL data only<br>• Architecture: Dense(16) → Dense(8) → Dense(4) [bottleneck] → Dense(8) → Dense(16) → Dense(23)<br>• Loss: MSE<br>• Inference: reconstruction_error = mean((X - X_reconstructed)^2)<br>• Threshold tuning: maximize F1 on val set<br>• Expected: F1≈0.96, latency≈50ms | Hết tuần 4 | `dl_autoencoder_train.py` (200+ lines), autoencoder_model.h5, threshold.json |
+| **4.5** | **Thành viên 4** | 4-5 | **So sánh mô hình DL** | • Load all 3 models (CNN, LSTM, AE)<br>• Evaluate test set: Acc, Prec, Recall, F1, ROC-AUC, latency, memory<br>• Create comparison table: CNN (98.2% F1, 120ms) vs LSTM (97.5%, 200ms) vs AE (96%, 50ms)<br>• Recommendation: CNN best balance | Hết tuần 5 | `dl_compare.py`, comparison table & plots |
+| **4.6** | **Thành viên 4** | 5 | **Real-time DL Inference** | • Load CNN model (best)<br>• Real-time inference on sequences<br>• Measure end-to-end latency, throughput<br>• Benchmark different traffic rates<br>• Optional: quantization (float32 → float16/int8) để tối ưu tốc độ | Hết tuần 5 | `dl_realtime_inference.py` (150+ lines), `dl_benchmark.py`, benchmark.json, plot |
+| **4.7** | **Thành viên 4** | 5 | **Tài liệu DL** | • Tổng hợp architectures (với diagram)<br>• Training history plots<br>• Comparison conclusions<br>• Best model recommendation<br>• Real-time performance summary | Hết tuần 5 | `DL_RESULTS.md` (2000+ từ), all plots/diagrams |
+| **5.1** | **Thành viên 5: Hoàng Anh Đức** (QA+Test) | 4-5 | **Test Suite Development** | **Functional tests:**<br>• `test_feature_extraction.py` (15+ cases): empty pcap, corrupted packets, single flows, feature ranges, nulls, schema<br>• `test_preprocessing.py` (10+ cases): scaling, train/test split, data leakage, consistency<br>• `test_ml_models.py` (15+ cases): RF fit, predict shape, model comparison, latency, class imbalance<br>• `test_dl_models.py` (10+ cases): CNN/LSTM/AE shapes, inference, reconstruction<br>• `test_attack_detection.py` (15+ integration tests): SYN flood detect, spoof detect, stealthy hard cases<br>**Total: 50+ tests, Coverage ≥80%** | Hết tuần 5 | `test_*.py` files (50+ tests), coverage report (≥80%), TEST_REPORT.txt |
+| **5.2** | **Thành viên 5** | 5 | **Visualization & Dashboards** | • Plot 1: ROC curves (overlay all 6 methods)<br>• Plot 2: PR curves<br>• Plot 3: Confusion matrices (6 subplots)<br>• Plot 4: Feature importance (top 15)<br>• Plot 5: Latency comparison (bar chart)<br>• Plot 6: Accuracy vs Latency (scatter)<br>• Plot 7: Class distribution (pie)<br>• Optional: Plotly interactive dashboard | Hết tuần 5 | `visualization.py` (300+ lines), 7+ plots, dashboard.html (optional) |
+| **5.3** | **Thành viên 5** | 5 | **Test Report** | • Test strategy: unit, integration, performance, security<br>• Execution results: 50+ tests, 100% pass, 82% coverage<br>• Known issues (nếu có)<br>• Recommendations<br>• Detailed test results table | Hết tuần 5 | `TEST_REPORT.md` (1000+ từ) |
+| **5.4** | **Thành viên 5** | 5 | **Chuẩn bị thuyết trình** | • **20 slides:**<br>  - 1: Title<br>  - 2-3: Problem & Motivation<br>  - 4-5: Related Work<br>  - 6-7: System Architecture<br>  - 8-9: Dataset & Features<br>  - 10: Entropy results<br>  - 11-12: ML results<br>  - 13-15: DL results<br>  - 16-17: Comparison (accuracy vs latency)<br>  - 18: Demo & Live Testing<br>  - 19: Conclusions<br>  - 20: Q&A<br>• **Q&A Script:** 30 typical questions + answers<br>• **Rehearsal:** Practice 20-min presentation | Hết tuần 5 | `PRESENTATION_SLIDES.pptx` (20 slides), `QA_SCRIPT.md` (30 Q&A), speaker notes |
+| **5.5** | **Thành viên 5** | 5 | **Final Integration** | • Create `FINAL_INTEGRATION_REPORT.md`: executive summary, reproduce instructions, file structure<br>• Create/update `README.md`: project overview, quick start, results summary<br>• GitHub org: clean structure, .gitignore, requirements.txt<br>• Tag: v1.0-final-submission<br>• Push all files | Hết tuần 5 | `FINAL_INTEGRATION_REPORT.md`, `README.md`, GitHub v1.0-final-submission |
 
-### Task 1.1: Survey & Tổng hợp Bài Báo (Tuần 1-2)
+---
 
-**Thời hạn:** Hết tuần 2  
-**Đầu vào:** 15+ papers từ REFERENCES_PAPERS.md  
-**Đầu ra:** `RESEARCH_SURVEY.md` (3000+ từ)
+## 📊 TÓNG KẾT NỖ LỰC & DELIVERABLES
+
+| Thành viên | Vai trò | Nỗ lực | Tuần | Tasks | Deliverables |
+|-----------|--------|-------|------|-------|--------------|
+| **1** | Trưởng nhóm + Nghiên cứu | 30% làm + 70% quản lý | 1-5 | 4 | 4 docs (Survey, Protocol, Review, Report) |
+| **2** | Data & Lab Engineer | 95% làm + 5% doc | 1-5 | 5 | 5 scripts + datasets (16 files pcap) |
+| **3** | ML Engineer | 95% làm + 5% doc | 3-5 | 4 | 5 scripts + 3 models + results |
+| **4** | DL Engineer | 95% làm + 5% doc | 3-5 | 7 | 7 scripts + 3 models + results |
+| **5** | QA + Presentation | 70% làm + 30% thuyết trình | 4-5 | 5 | 5 scripts + tests + slides |
+| **TOTAL** | 5 người | **Cân bằng** | **5 tuần** | **~25 tasks** | **50+ deliverables** |
+
+---
+
+## ✅ TIÊU CHÍ ĐẠT 10 ĐIỂM
+
+| Tiêu chí | Yêu cầu | Trách nhiệm |
+|---------|--------|-----------|
+| **Code Quality (3 điểm)** | 50+ test cases (pytest), 80%+ code coverage, PEP8 clean code, reproducible setup | Thành viên 5 + all |
+| **Technical Depth (3 điểm)** | 3+ methods (entropy, ML, DL) working, 5+ attack scenarios, latency <100ms, comparison table | Thành viên 2, 3, 4 |
+| **Scientific Rigor (2 điểm)** | 15+ papers cited (IEEE), dataset >1GB labeled, all metrics defined, error analysis | Thành viên 1 + 2 |
+| **Presentation (2 điểm)** | 20-slide deck, demo working, 30-question Q&A script, GitHub documentation | Thành viên 5 + 1 |
+
+---
+
+**Status:** READY FOR EXECUTION ✅
 
 **Checklist:**
 
@@ -1751,153 +1797,23 @@ Week 5:
 
 ## 📅 DETAILED TIMELINE
 
-| Week  | Thành viên 1                   | Thành viên 2                | Thành viên 3          | Thành viên 4           | Thành viên 5               |
-| ----- | ------------------------------ | --------------------------- | --------------------- | ---------------------- | -------------------------- |
-| **1** | Survey papers, define protocol | Setup lab environment       | -                     | -                      | -                          |
-| **2** | Research survey, taxonomy      | Normal traffic collection   | -                     | -                      | -                          |
-| **3** | Code review, updates           | DoS traffic + features      | RF training & tuning  | DL sequence prep       | Test suite start           |
-| **4** | Code review, updates           | Feature extraction complete | RF+XGB+LGB comparison | CNN, LSTM, AE training | Test suite completion      |
-| **5** | Final report writing           | Preprocessing pipeline      | ML realtime module    | DL realtime module     | Visualization, slides, Q&A |
+
 
 ---
 
-## ✅ FINAL CHECKLIST (Hướng tới 10 điểm)
+## 📅 LỊCH THỰC HIỆN HÀNG TUẦN
 
-```
-Code Quality (3 điểm):
-  [ ] ≥50 test cases (pytest)
-  [ ] Code coverage ≥80%
-  [ ] Clean code (PEP8, docstrings)
-  [ ] Reproducible (requirements.txt, README)
-
-Technical Depth (3 điểm):
-  [ ] 3+ methods (entropy, ML, DL) working
-  [ ] 5+ attack scenarios tested
-  [ ] Real-time inference (<100ms)
-  [ ] Comparison table with all metrics
-
-Scientific Rigor (2 điểm):
-  [ ] 15+ papers cited (IEEE format)
-  [ ] Dataset >1GB, properly split
-  [ ] Metrics: Accuracy, Precision, Recall, F1, ROC-AUC
-  [ ] Error analysis provided
-
-Presentation (2 điểm):
-  [ ] 20-slide deck (clear, professional)
-  [ ] Demo working
-  [ ] Q&A script (30 questions)
-  [ ] GitHub repo (clean, documented)
-```
+| Tuần | Thành viên 1 | Thành viên 2 | Thành viên 3 | Thành viên 4 | Thành viên 5 |
+|-----|-------------|-------------|-------------|-------------|-------------|
+| **1** | Đọc papers, định nghĩa protocol | Setup Mininet+Ryu | Chuẩn bị ML env | Chuẩn bị DL env | Setup test env |
+| **2** | Hoàn thành survey & protocol | Thu thập traffic bình thường | Chuẩn bị hyperparams | Chuẩn bị sequences | Test templates |
+| **3** | Review code, updates | Tấn công DoS + features | RF training | DL sequences | Test cases start |
+| **4** | Review code, updates | Feature extraction hoàn tất | ML comparison | CNN+LSTM+AE train | Test coverage |
+| **5** | Viết báo cáo cuối | Preprocessing hoàn tất | Real-time inference | Real-time inference | Slides + Q&A |
 
 ---
 
-# 📅 MASTER TO-DO LIST - WEEKLY TRACKING
-
-## THAM KHẢO CHI TIẾT
-
-Xem danh sách toàn bộ công việc theo tuần bên dưới (Master To-Do List):
-
----
-
-# 📅 MASTER TO-DO LIST - DETAILED WEEKLY BREAKDOWN
-
-**Status:** Week 1 / Week 5  
-**Last updated:** 2026-04-21  
-**Cách sử dụng:** Tích [x] khi hoàn thành, cập nhật weekly
-
----
-
-## 📅 WEEK 1: SETUP + RESEARCH + PLANNING
-
-### Thành viên 1 - Research Lead
-
-- [ ] Read all 15+ papers from REFERENCES_PAPERS.md (prioritize A1, A2, B1, B2, C1, C2)
-- [ ] Create RESEARCH_SURVEY.md (3000+ words, all 15 papers cited)
-- [ ] Create EVALUATION_PROTOCOL.md (500+ words, define metrics & thresholds)
-- [ ] Create ATTACK_SCENARIOS.md (describe 5 scenarios: SYN, UDP, spoof, distributed, stealthy)
-- [ ] Team kickoff meeting (all 5 members, 30 mins)
-- [ ] Share research findings with team
-
-**Deadline:** End of Week 1  
-**Status:** ☐ NOT STARTED
-
----
-
-### Thành viên 2 - Data & Lab Engineer
-
-- [ ] Install Mininet, Ryu, Scapy, tshark on Ubuntu 18.04+
-- [ ] Review `topology_nhom4.py` (understand 5 switches, 8 hosts)
-- [ ] Review `l3_router_test.py` (understand entropy algorithm)
-- [ ] Create `setup_environment.sh` (automated installation)
-- [ ] Test topology: mininet > h_pc1 ping h_web1 ✓
-- [ ] Test Ryu controller connection ✓
-- [ ] Create data directories: data/raw, data/features, logs
-- [ ] Create `LAB_SETUP_GUIDE.md` (installation + troubleshooting)
-- [ ] **Deliverable:** Setup script + verified running Mininet topology
-
-**Deadline:** End of Week 1  
-**Status:** ☐ NOT STARTED
-
----
-
-### Thành viên 3 - ML Engineer (prepare)
-
-- [ ] Read ML papers (B3, B4 from REFERENCES_PAPERS.md)
-- [ ] Understand: Random Forest, XGBoost, class imbalance handling
-- [ ] Install sklearn, xgboost, lightgbm
-- [ ] Study hyperparameter tuning techniques
-- [ ] Prepare environment: Jupyter notebook or Python IDE
-- [ ] **Deliverable:** Environment ready, no ML work yet (wait for data from Member 2)
-
-**Deadline:** End of Week 1  
-**Status:** ☐ NOT STARTED
-
----
-
-### Thành viên 4 - DL Engineer (prepare)
-
-- [ ] Read DL papers (C1, C2, C3, C4 from REFERENCES_PAPERS.md)
-- [ ] Understand: CNN, LSTM, Autoencoder architectures
-- [ ] Install TensorFlow/PyTorch + Keras
-- [ ] Study sequence generation (sliding window approach)
-- [ ] Prepare GPU environment (if available)
-- [ ] **Deliverable:** DL environment ready, understand flow sequences
-
-**Deadline:** End of Week 1  
-**Status:** ☐ NOT STARTED
-
----
-
-### Thành viên 5 - QA + Presentation (prepare)
-
-- [ ] Read dataset papers (D1, D2 from REFERENCES_PAPERS.md)
-- [ ] Understand: test strategy, pytest, matplotlib basics
-- [ ] Create folder structure: tests/, plots/, results/
-- [ ] Plan presentation: 20 slides structure
-- [ ] **Deliverable:** Testing environment ready, slide template prepared
-
-**Deadline:** End of Week 1  
-**Status:** ☐ NOT STARTED
-
----
-
-**Document created:** 2026-04-21  
-**Status:** ACTIVE - Week 1 Kickoff  
-**Next meeting:** Team sync every Monday 10:00 AM
-
----
-
-## 📝 GHI CHÚ THÊM
-
-> **Chi tiết đầy đủ tuần 2-5:** Để xem danh sách chi tiết từng tuần, hãy tham khảo file **WORK_BREAKDOWN_FULL.md** hoặc liên hệ **Thành viên 1 (Research Lead)** để cập nhật thêm.
-
----
-
-**Tổng cộng:** 5 tuần, ~25 tasks chính, ~80+ sub-tasks chi tiết
-
-✅ **Ghi chú:** File này được consolidate từ:
-
-- PHAN_CONG_CHI_TIET_5_THANH_VIEN.md (version chính)
-- MASTER_TODO_LIST.md (weekly tracking)
-
-**Status:** READY FOR TEAM EXECUTION
+**Created:** 2026-04-21  
+**Last Updated:** 2026-04-21  
+**Version:** 1.0  
+**Status:** ✅ READY FOR EXECUTION
