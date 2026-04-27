@@ -1,4 +1,4 @@
-# 🗺️  Đây là những file mình chỉnh sửa:
+# Đây là những file mình chỉnh sửa:
 
 - `topology_nhom4.py`
 - `topology_nhom4_giaodien.mn`
@@ -35,7 +35,7 @@ Mininet sẽ đọc file này để:
 
 ## 2. Cách mở file `.mn` để chỉnh sửa topology
 
-> ⚠️ **LƯU Ý QUAN TRỌNG:**  
+> **LƯU Ý:**  
 > MiniEdit bị lỗi nếu mở bằng Python 3.  
 > Nếu dùng `python3`, file save có thể bị trắng (**0 byte**).  
 > **Bắt buộc dùng `python2`.**
@@ -147,7 +147,7 @@ Thời gian:
 
 ---
 
-## 🎯 Tóm tắt nhanh
+## Tóm tắt nhanh
 
 | File | Vai trò |
 |------|--------|
@@ -156,6 +156,3 @@ Thời gian:
 | `python2` | Dùng để mở MiniEdit |
 | `python` | Dùng để chạy topology |
 
----
-
-**Chúc Nhóm 4 làm việc hiệu quả với topology! 🚀**
